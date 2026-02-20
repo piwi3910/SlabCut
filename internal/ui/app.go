@@ -819,6 +819,15 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 		widget.NewLabel("Helix Depth/Rev (%)"), floatEntry(&s.HelixRevPercent),
 	))
 
+	cornerOvercutSelect := widget.NewSelect(model.CornerOvercutOptions(), func(selected string) {
+		s.CornerOvercut = model.CornerOvercutFromString(selected)
+	})
+	cornerOvercutSelect.SetSelected(s.CornerOvercut.String())
+
+	cornerSection := widget.NewCard("Corner Overcuts", "Relief cuts for square interior corners", container.NewGridWithColumns(2,
+		widget.NewLabel("Corner Type"), cornerOvercutSelect,
+	))
+
 	// Stock sheet holding tabs (for securing sheet to CNC bed)
 	stockTabEnabled := widget.NewCheck("", func(b bool) { s.StockTabs.Enabled = b })
 	stockTabEnabled.Checked = s.StockTabs.Enabled
@@ -842,6 +851,7 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 		cncSection,
 		plungeSection,
 		leadInOutSection,
+		cornerSection,
 		stockTabSection,
 	))
 }

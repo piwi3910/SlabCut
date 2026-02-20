@@ -44,6 +44,44 @@ func (p PlungeType) String() string {
 	}
 }
 
+// CornerOvercut represents the corner relief cut type for CNC routing.
+type CornerOvercut string
+
+const (
+	CornerOvercutNone    CornerOvercut = "none"    // No corner overcut
+	CornerOvercutDogbone CornerOvercut = "dogbone" // Circular overcut into diagonal
+	CornerOvercutTbone   CornerOvercut = "tbone"   // Perpendicular overcut along longest edge
+)
+
+// CornerOvercutOptions returns available corner overcut choices for UI display.
+func CornerOvercutOptions() []string {
+	return []string{"None", "Dogbone", "T-Bone"}
+}
+
+// CornerOvercutFromString converts a display string to a CornerOvercut.
+func CornerOvercutFromString(s string) CornerOvercut {
+	switch s {
+	case "Dogbone":
+		return CornerOvercutDogbone
+	case "T-Bone":
+		return CornerOvercutTbone
+	default:
+		return CornerOvercutNone
+	}
+}
+
+// String returns the display name for a CornerOvercut.
+func (c CornerOvercut) String() string {
+	switch c {
+	case CornerOvercutDogbone:
+		return "Dogbone"
+	case CornerOvercutTbone:
+		return "T-Bone"
+	default:
+		return "None"
+	}
+}
+
 // Grain represents the grain direction constraint for a part.
 type Grain int
 
@@ -226,6 +264,9 @@ type CutSettings struct {
 	RampAngle       float64    `json:"ramp_angle"`        // Ramp entry angle in degrees (for ramp plunge)
 	HelixDiameter   float64    `json:"helix_diameter"`    // Helix diameter in mm (for helix plunge)
 	HelixRevPercent float64    `json:"helix_rev_percent"` // Helix depth per revolution as % of pass depth
+
+	// Corner overcuts for interior corners
+	CornerOvercut CornerOvercut `json:"corner_overcut"` // Corner relief type: none, dogbone, or tbone
 }
 
 // StockTabConfig defines holding tabs for the stock sheet edges.
@@ -480,7 +521,8 @@ func DefaultSettings() CutSettings {
 		PlungeType:      PlungeDirect, // Direct plunge by default
 		RampAngle:       3.0,          // 3 degree ramp angle
 		HelixDiameter:   5.0,          // 5mm helix diameter
-		HelixRevPercent: 50.0,         // 50% of pass depth per revolution
+		HelixRevPercent: 50.0,             // 50% of pass depth per revolution
+		CornerOvercut:   CornerOvercutNone, // No corner overcuts by default
 	}
 }
 

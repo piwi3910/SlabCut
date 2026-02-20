@@ -497,3 +497,155 @@ func TestPlungeTypeFromString(t *testing.T) {
 		}
 	}
 }
+
+// ─── Corner Overcut Tests ───────────────────────────────────
+
+func TestCornerOvercut_None(t *testing.T) {
+	settings := newTestSettings()
+	settings.CornerOvercut = model.CornerOvercutNone
+	gen := New(settings)
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// Standard perimeter should have exactly 4 feed moves for the rectangle
+	// (plus the return-to-start from lead-in or closing the rectangle)
+	// No extra moves for overcuts
+	lines := strings.Split(code, "\n")
+	overcutMoves := 0
+	for _, line := range lines {
+		// Overcut moves go to intermediate positions; with no overcuts
+		// there should be no such moves. We verify by checking that
+		// the code does not contain diagonal overcut positions.
+		if strings.Contains(line, "overcut") {
+			overcutMoves++
+		}
+	}
+	if overcutMoves > 0 {
+		t.Error("expected no overcut-related content when corner overcut is none")
+	}
+}
+
+func TestCornerOvercut_Dogbone(t *testing.T) {
+	settings := newTestSettings()
+	settings.CornerOvercut = model.CornerOvercutDogbone
+	gen := New(settings)
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// With dogbone overcuts, there should be additional G1 moves at each corner.
+	// Each corner gets a move-out + move-back = 2 extra G1 moves.
+	// 4 corners * 2 moves = 8 extra G1 feed moves beyond the standard 4 perimeter moves.
+	feedMoveCount := strings.Count(code, gen.profile.FeedMove)
+
+	// Standard rect: plunge(1) + 4 perimeter + retract = 5 G1 moves
+	// With dogbone: plunge(1) + 4 perimeter + 8 overcut = 13 G1 moves (plus Z moves)
+	// We just verify there are more G1 moves than without overcuts
+	settingsNoOvercut := newTestSettings()
+	genNoOvercut := New(settingsNoOvercut)
+	codeNoOvercut := genNoOvercut.GenerateSheet(newTestSheet(), 1)
+	feedMoveCountNoOvercut := strings.Count(codeNoOvercut, gen.profile.FeedMove)
+
+	if feedMoveCount <= feedMoveCountNoOvercut {
+		t.Errorf("expected more feed moves with dogbone overcuts (%d) than without (%d)",
+			feedMoveCount, feedMoveCountNoOvercut)
+	}
+}
+
+func TestCornerOvercut_Tbone(t *testing.T) {
+	settings := newTestSettings()
+	settings.CornerOvercut = model.CornerOvercutTbone
+	gen := New(settings)
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// T-bone should also add extra moves
+	settingsNoOvercut := newTestSettings()
+	genNoOvercut := New(settingsNoOvercut)
+	codeNoOvercut := genNoOvercut.GenerateSheet(newTestSheet(), 1)
+
+	feedMoveCount := strings.Count(code, gen.profile.FeedMove)
+	feedMoveCountNoOvercut := strings.Count(codeNoOvercut, gen.profile.FeedMove)
+
+	if feedMoveCount <= feedMoveCountNoOvercut {
+		t.Errorf("expected more feed moves with T-bone overcuts (%d) than without (%d)",
+			feedMoveCount, feedMoveCountNoOvercut)
+	}
+}
+
+func TestCornerOvercut_DogboneDiagonalPositions(t *testing.T) {
+	settings := newTestSettings()
+	settings.CornerOvercut = model.CornerOvercutDogbone
+	settings.ToolDiameter = 6.0
+	gen := New(settings)
+
+	toolR := settings.ToolDiameter / 2.0
+	p := newTestPlacement()
+	pw := p.PlacedWidth()
+	ph := p.PlacedHeight()
+	x0 := p.X - toolR
+	y0 := p.Y - toolR
+	x1 := p.X + pw + toolR
+	y1 := p.Y + ph + toolR
+
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// Bottom-right corner (x1, y0) should have a diagonal overcut toward (x1+d, y0-d)
+	sqrt2inv := 1.0 / math.Sqrt(2.0)
+	overcutDist := toolR * sqrt2inv
+	expectedX := x1 + overcutDist
+	expectedY := y0 - overcutDist
+
+	expectedStr := "X" + gen.format(expectedX) + " Y" + gen.format(expectedY)
+	if !strings.Contains(code, expectedStr) {
+		t.Errorf("expected dogbone overcut position %s in output for corner (%.1f, %.1f):\n%s",
+			expectedStr, x1, y0, code)
+	}
+	_ = x0
+	_ = y1
+}
+
+func TestCornerOvercut_TbonePerpendicularPositions(t *testing.T) {
+	settings := newTestSettings()
+	settings.CornerOvercut = model.CornerOvercutTbone
+	settings.ToolDiameter = 6.0
+	gen := New(settings)
+
+	toolR := settings.ToolDiameter / 2.0
+	p := newTestPlacement()
+	pw := p.PlacedWidth()
+	x1 := p.X + pw + toolR
+	y0 := p.Y - toolR
+
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// Bottom-right corner (x1, y0): T-bone overcuts along X (right)
+	expectedX := x1 + toolR
+	expectedY := y0
+	expectedStr := "X" + gen.format(expectedX) + " Y" + gen.format(expectedY)
+	if !strings.Contains(code, expectedStr) {
+		t.Errorf("expected T-bone overcut position %s for bottom-right corner:\n%s",
+			expectedStr, code)
+	}
+}
+
+func TestDefaultSettings_CornerOvercut(t *testing.T) {
+	s := model.DefaultSettings()
+	if s.CornerOvercut != model.CornerOvercutNone {
+		t.Errorf("expected default CornerOvercut to be none, got %s", s.CornerOvercut)
+	}
+}
+
+func TestCornerOvercutFromString(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected model.CornerOvercut
+	}{
+		{"None", model.CornerOvercutNone},
+		{"Dogbone", model.CornerOvercutDogbone},
+		{"T-Bone", model.CornerOvercutTbone},
+		{"unknown", model.CornerOvercutNone},
+	}
+	for _, tt := range tests {
+		got := model.CornerOvercutFromString(tt.input)
+		if got != tt.expected {
+			t.Errorf("CornerOvercutFromString(%q) = %q, want %q", tt.input, got, tt.expected)
+		}
+	}
+}

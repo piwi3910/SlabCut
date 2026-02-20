@@ -550,10 +550,89 @@ func (g *Generator) writeLeadOut(b *strings.Builder, x0, y0 float64) {
 
 func (g *Generator) writePerimeter(b *strings.Builder, x0, y0, x1, y1 float64) {
 	p := g.profile
+	toolR := g.Settings.ToolDiameter / 2.0
+
+	// Corner points in clockwise order: bottom-left, bottom-right, top-right, top-left
+	corners := [4][2]float64{
+		{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1},
+	}
+	// Previous corner directions (coming from) - used for T-bone calculation
+	// Corner 0 (x0,y0): coming from left side (x0,y1)->(x0,y0), going to bottom (x0,y0)->(x1,y0)
+	// Corner 1 (x1,y0): coming from bottom, going to right side
+	// Corner 2 (x1,y1): coming from right side, going to top
+	// Corner 3 (x0,y1): coming from top, going to left side
+
 	b.WriteString(fmt.Sprintf("%s X%s Y%s F%s\n", p.FeedMove, g.format(x1), g.format(y0), g.format(g.Settings.FeedRate)))
+	g.writeCornerOvercut(b, corners[1][0], corners[1][1], toolR, 1)
 	b.WriteString(fmt.Sprintf("%s X%s Y%s\n", p.FeedMove, g.format(x1), g.format(y1)))
+	g.writeCornerOvercut(b, corners[2][0], corners[2][1], toolR, 2)
 	b.WriteString(fmt.Sprintf("%s X%s Y%s\n", p.FeedMove, g.format(x0), g.format(y1)))
+	g.writeCornerOvercut(b, corners[3][0], corners[3][1], toolR, 3)
 	b.WriteString(fmt.Sprintf("%s X%s Y%s\n", p.FeedMove, g.format(x0), g.format(y0)))
+	g.writeCornerOvercut(b, corners[0][0], corners[0][1], toolR, 0)
+}
+
+// writeCornerOvercut generates a corner relief cut at the given corner position.
+// For dogbone: cuts a small circle at 45 degrees into the corner diagonal.
+// For T-bone: cuts perpendicular to the longer adjacent edge.
+// The cornerIndex (0-3) indicates which corner of the rectangle (CW from bottom-left):
+//
+//	0 = bottom-left, 1 = bottom-right, 2 = top-right, 3 = top-left
+func (g *Generator) writeCornerOvercut(b *strings.Builder, cx, cy, toolR float64, cornerIndex int) {
+	overcutType := g.Settings.CornerOvercut
+	if overcutType == model.CornerOvercutNone || overcutType == "" {
+		return
+	}
+
+	// The overcut distance is the tool radius - this extends the cut into the
+	// corner so that after the tool passes, the corner is actually square.
+	dist := toolR
+	sqrt2inv := 1.0 / math.Sqrt(2.0)
+
+	var dx, dy float64
+
+	switch overcutType {
+	case model.CornerOvercutDogbone:
+		// Dogbone: cut diagonally into the corner at 45 degrees
+		switch cornerIndex {
+		case 0: // bottom-left corner - overcut toward bottom-left
+			dx = -dist * sqrt2inv
+			dy = -dist * sqrt2inv
+		case 1: // bottom-right corner - overcut toward bottom-right
+			dx = dist * sqrt2inv
+			dy = -dist * sqrt2inv
+		case 2: // top-right corner - overcut toward top-right
+			dx = dist * sqrt2inv
+			dy = dist * sqrt2inv
+		case 3: // top-left corner - overcut toward top-left
+			dx = -dist * sqrt2inv
+			dy = dist * sqrt2inv
+		}
+	case model.CornerOvercutTbone:
+		// T-bone: cut perpendicular to the longer edge. For a rectangle perimeter
+		// traversed clockwise, the T-bone goes along the axis of the edge
+		// we just arrived from. Bottom/top edges are horizontal, left/right vertical.
+		switch cornerIndex {
+		case 0: // bottom-left: arrived from left edge (vertical), overcut down
+			dx = 0
+			dy = -dist
+		case 1: // bottom-right: arrived from bottom edge (horizontal), overcut right
+			dx = dist
+			dy = 0
+		case 2: // top-right: arrived from right edge (vertical), overcut up
+			dx = 0
+			dy = dist
+		case 3: // top-left: arrived from top edge (horizontal), overcut left
+			dx = -dist
+			dy = 0
+		}
+	}
+
+	// Move into the overcut position and back
+	b.WriteString(fmt.Sprintf("%s X%s Y%s F%s\n", g.profile.FeedMove,
+		g.format(cx+dx), g.format(cy+dy), g.format(g.Settings.FeedRate)))
+	b.WriteString(fmt.Sprintf("%s X%s Y%s\n", g.profile.FeedMove,
+		g.format(cx), g.format(cy)))
 }
 
 // comment wraps text in the profile's comment syntax.
