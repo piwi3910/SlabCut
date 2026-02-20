@@ -1121,7 +1121,10 @@ func (a *App) runAutoOptimize() {
 		return
 	}
 
-	// Update status
+	// Show loading spinner and update status
+	if a.progressBar != nil {
+		a.progressBar.Show()
+	}
 	if a.statusLabel != nil {
 		a.statusLabel.SetText("Optimizing...")
 	}
@@ -1136,6 +1139,12 @@ func (a *App) runAutoOptimize() {
 		// Update on UI thread
 		a.project.Result = &result
 		a.lastCollisions = collisions
+
+		// Hide loading spinner
+		if a.progressBar != nil {
+			a.progressBar.Hide()
+		}
+
 		a.updateStatusBar()
 		a.refreshSheetSelector()
 		a.refreshGCodePreview()

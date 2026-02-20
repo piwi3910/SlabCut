@@ -250,6 +250,19 @@ func (r *sheetCanvasRenderer) rebuild() {
 	border.Move(fyne.NewPos(panX, panY))
 	r.objects = append(r.objects, border)
 
+	// Draw sheet dimension labels along the edges
+	dimColor := color.NRGBA{R: uint8(fr >> 8), G: uint8(fg >> 8), B: uint8(fb >> 8), A: 140}
+	widthLabel := canvas.NewText(fmt.Sprintf("%.0f mm", sheet.Stock.Width), dimColor)
+	widthLabel.TextSize = 10
+	widthLabel.Alignment = fyne.TextAlignCenter
+	widthLabel.Move(fyne.NewPos(panX+canvasW/2-30, panY+canvasH+3))
+	r.objects = append(r.objects, widthLabel)
+
+	heightLabel := canvas.NewText(fmt.Sprintf("%.0f mm", sheet.Stock.Height), dimColor)
+	heightLabel.TextSize = 10
+	heightLabel.Move(fyne.NewPos(panX-50, panY+canvasH/2-6))
+	r.objects = append(r.objects, heightLabel)
+
 	// Draw stock holding tabs (exclusion zones)
 	r.drawStockTabs(sheet.Stock, scale, panX, panY)
 
