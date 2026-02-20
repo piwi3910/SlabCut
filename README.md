@@ -9,7 +9,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
 ### Optimization Engine
 - **2D Bin Packing** — Guillotine-based optimization with Best Area Fit heuristic
 - **Genetic Algorithm** — Alternative optimizer using population-based meta-heuristic for better packing efficiency
-- **Grain Direction** — Supports horizontal/vertical grain constraints
+- **Grain Direction** — Supports horizontal/vertical grain constraints on both parts and stock sheets with automatic grain matching
 - **Saw Kerf & Edge Trim** — Accounts for blade width and stock edge waste
 - **Part Rotation** — Automatically rotates parts for better fit (respects grain)
 - **Multiple Stock Sizes** — Use different stock sheet sizes in one run with smart selection (trial-packing heuristic)
@@ -23,6 +23,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
   - Safe Z retract between operations
   - Lead-in/lead-out arcs for smoother entry and exit
   - Toolpath ordering optimization (nearest-neighbor) to minimize rapid travel
+  - Ramped and helical plunge entry strategies for reduced tool stress
 - **GCode Preview** — Visual toolpath simulation with color-coded rapid/feed/plunge moves
 - **Toolpath Simulation** — Interactive GCode simulation with progress slider, play/pause/stop/step controls, adjustable speed (0.25x-16x), completed vs remaining cut visualization, live tool position indicator, loop playback, and real-time coordinate display (X/Y/Z/Feed/Type)
 - **Live Simulation Viewport** — Embedded simulation tab in the Results panel for instant toolpath visualization without opening a separate dialog
@@ -44,6 +45,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
 - **Parts Library** — Save and reuse predefined parts organized by category
 - **Tool & Stock Inventory** — Manage cutting tools and stock sheet presets
 - **Material Pricing** — Track price per sheet in stock inventory; view total material cost in optimization results
+- **Offcuts / Remnants Tracking** — Automatically detects usable rectangular remnants after optimization; save offcuts to stock inventory for future projects
 - **Admin Menu** — Application settings, inventory management, data backup/restore
 - **Stock Size Presets** — Quick-select dropdown with common panel sizes (Full, Half, Quarter sheet, Euro sizes)
 

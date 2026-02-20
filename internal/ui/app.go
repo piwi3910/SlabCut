@@ -532,11 +532,12 @@ func (a *App) refreshStockList() {
 		return
 	}
 
-	header := container.NewGridWithColumns(7,
+	header := container.NewGridWithColumns(8,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Price/Sheet", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -551,11 +552,12 @@ func (a *App) refreshStockList() {
 		if s.PricePerSheet > 0 {
 			priceLabel = fmt.Sprintf("%.2f", s.PricePerSheet)
 		}
-		row := container.NewGridWithColumns(7,
+		row := container.NewGridWithColumns(8,
 			widget.NewLabel(s.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", s.Quantity)),
+			widget.NewLabel(s.Grain.String()),
 			widget.NewLabel(priceLabel),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditStockDialog(idx)
@@ -620,6 +622,9 @@ func (a *App) showAddStockDialog() {
 	})
 	presetSelect.PlaceHolder = "Select a preset size..."
 
+	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	grainSelect.SetSelected("None")
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetPlaceHolder("0.00 (optional)")
 	priceEntry.SetText("0")
@@ -631,6 +636,7 @@ func (a *App) showAddStockDialog() {
 			widget.NewFormItem("Width (mm)", widthEntry),
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
+			widget.NewFormItem("Grain Direction", grainSelect),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -646,13 +652,19 @@ func (a *App) showAddStockDialog() {
 			}
 			a.saveState("Add Stock Sheet")
 			sheet := model.NewStockSheet(labelEntry.Text, w, h, q)
+			switch grainSelect.Selected {
+			case "Horizontal":
+				sheet.Grain = model.GrainHorizontal
+			case "Vertical":
+				sheet.Grain = model.GrainVertical
+			}
 			sheet.PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.project.Stocks = append(a.project.Stocks, sheet)
 			a.refreshStockList()
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(450, 450))
+	form.Resize(fyne.NewSize(450, 500))
 	form.Show()
 }
 
@@ -671,6 +683,9 @@ func (a *App) showEditStockDialog(idx int) {
 	qtyEntry := widget.NewEntry()
 	qtyEntry.SetText(fmt.Sprintf("%d", s.Quantity))
 
+	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	grainSelect.SetSelected(s.Grain.String())
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetText(fmt.Sprintf("%.2f", s.PricePerSheet))
 
@@ -680,6 +695,7 @@ func (a *App) showEditStockDialog(idx int) {
 			widget.NewFormItem("Width (mm)", widthEntry),
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
+			widget.NewFormItem("Grain Direction", grainSelect),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -698,12 +714,20 @@ func (a *App) showEditStockDialog(idx int) {
 			a.project.Stocks[idx].Width = w
 			a.project.Stocks[idx].Height = h
 			a.project.Stocks[idx].Quantity = q
+			switch grainSelect.Selected {
+			case "Horizontal":
+				a.project.Stocks[idx].Grain = model.GrainHorizontal
+			case "Vertical":
+				a.project.Stocks[idx].Grain = model.GrainVertical
+			default:
+				a.project.Stocks[idx].Grain = model.GrainNone
+			}
 			a.project.Stocks[idx].PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.refreshStockList()
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(400, 350))
+	form.Resize(fyne.NewSize(400, 400))
 	form.Show()
 }
 
@@ -779,6 +803,18 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 		widget.NewLabel("Approach Angle (degrees)"), floatEntry(&s.LeadInAngle),
 	))
 
+	plungeTypeSelect := widget.NewSelect(model.PlungeTypeOptions(), func(selected string) {
+		s.PlungeType = model.PlungeTypeFromString(selected)
+	})
+	plungeTypeSelect.SetSelected(s.PlungeType.String())
+
+	plungeSection := widget.NewCard("Plunge Entry Strategy", "How the tool enters the material", container.NewGridWithColumns(2,
+		widget.NewLabel("Plunge Type"), plungeTypeSelect,
+		widget.NewLabel("Ramp Angle (degrees)"), floatEntry(&s.RampAngle),
+		widget.NewLabel("Helix Diameter (mm)"), floatEntry(&s.HelixDiameter),
+		widget.NewLabel("Helix Depth/Rev (%)"), floatEntry(&s.HelixRevPercent),
+	))
+
 	// Stock sheet holding tabs (for securing sheet to CNC bed)
 	stockTabEnabled := widget.NewCheck("", func(b bool) { s.StockTabs.Enabled = b })
 	stockTabEnabled.Checked = s.StockTabs.Enabled
@@ -800,6 +836,7 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 	return container.NewVScroll(container.NewVBox(
 		optimizerSection,
 		cncSection,
+		plungeSection,
 		leadInOutSection,
 		stockTabSection,
 	))
@@ -844,7 +881,10 @@ func (a *App) refreshResults() {
 	exportBtn := widget.NewButtonWithIcon("Export GCode", theme.DocumentSaveIcon(), func() {
 		a.exportGCode()
 	})
-	toolbar := container.NewHBox(layout.NewSpacer(), simulateBtn, exportBtn)
+	saveOffcutsBtn := widget.NewButtonWithIcon("Save Offcuts to Inventory", theme.ContentAddIcon(), func() {
+		a.saveOffcutsToInventory()
+	})
+	toolbar := container.NewHBox(layout.NewSpacer(), saveOffcutsBtn, simulateBtn, exportBtn)
 
 	// Build both cut layout and inline simulation views
 	sheetResults := widgets.RenderSheetResults(a.project.Result, a.project.Settings)
@@ -922,6 +962,49 @@ func (a *App) previewGCode() {
 	d := dialog.NewCustom("GCode Toolpath Simulation", "Close", content, a.window)
 	d.Resize(fyne.NewSize(850, 650))
 	d.Show()
+}
+
+// saveOffcutsToInventory detects usable offcuts from the current result and saves them
+// as stock presets in the inventory for future projects.
+func (a *App) saveOffcutsToInventory() {
+	if a.project.Result == nil || len(a.project.Result.Sheets) == 0 {
+		dialog.ShowInformation("No Results", "Run the optimizer first to detect offcuts.", a.window)
+		return
+	}
+
+	offcuts := model.DetectAllOffcuts(*a.project.Result, a.project.Settings.KerfWidth)
+	if len(offcuts) == 0 {
+		dialog.ShowInformation("No Offcuts", "No usable remnant areas were detected.", a.window)
+		return
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found %d usable offcut(s):\n\n", len(offcuts)))
+	for i, o := range offcuts {
+		summary.WriteString(fmt.Sprintf("%d. Sheet %d (%s): %.0f x %.0f mm",
+			i+1, o.SheetIndex+1, o.SheetLabel, o.Width, o.Height))
+		if o.PricePerSheet > 0 {
+			summary.WriteString(fmt.Sprintf(" (~%.2f value)", o.PricePerSheet))
+		}
+		summary.WriteString("\n")
+	}
+	summary.WriteString("\nSave these as stock presets in your inventory?")
+
+	dialog.ShowConfirm("Save Offcuts to Inventory", summary.String(), func(ok bool) {
+		if !ok {
+			return
+		}
+		count := 0
+		for _, o := range offcuts {
+			sheet := o.ToStockSheet()
+			preset := model.NewStockPresetWithPrice(sheet.Label, sheet.Width, sheet.Height, "Offcut", sheet.PricePerSheet)
+			a.inventory.Stocks = append(a.inventory.Stocks, preset)
+			count++
+		}
+		a.saveInventory()
+		dialog.ShowInformation("Offcuts Saved",
+			fmt.Sprintf("%d offcut(s) added to stock inventory.", count), a.window)
+	}, a.window)
 }
 
 // ─── Actions ───────────────────────────────────────────────

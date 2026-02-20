@@ -6,6 +6,44 @@ import (
 	"github.com/google/uuid"
 )
 
+// PlungeType represents the plunge entry strategy for CNC operations.
+type PlungeType string
+
+const (
+	PlungeDirect PlungeType = "direct" // Straight plunge into material
+	PlungeRamp   PlungeType = "ramp"   // Ramped entry at an angle
+	PlungeHelix  PlungeType = "helix"  // Helical plunge entry
+)
+
+// PlungeTypeOptions returns the available plunge type choices for UI display.
+func PlungeTypeOptions() []string {
+	return []string{"Direct", "Ramp", "Helix"}
+}
+
+// PlungeTypeFromString converts a display string to a PlungeType.
+func PlungeTypeFromString(s string) PlungeType {
+	switch s {
+	case "Ramp":
+		return PlungeRamp
+	case "Helix":
+		return PlungeHelix
+	default:
+		return PlungeDirect
+	}
+}
+
+// String returns the display name for a PlungeType.
+func (p PlungeType) String() string {
+	switch p {
+	case PlungeRamp:
+		return "Ramp"
+	case PlungeHelix:
+		return "Helix"
+	default:
+		return "Direct"
+	}
+}
+
 // Grain represents the grain direction constraint for a part.
 type Grain int
 
@@ -98,6 +136,7 @@ type StockSheet struct {
 	Width         float64        `json:"width"`  // mm
 	Height        float64        `json:"height"` // mm
 	Quantity      int            `json:"quantity"`
+	Grain         Grain          `json:"grain"`           // Sheet grain direction (None, Horizontal, Vertical)
 	Tabs          StockTabConfig `json:"tabs"`            // Override default tab config for this sheet
 	PricePerSheet float64        `json:"price_per_sheet"` // Cost per sheet in user's currency (0 = not set)
 }
@@ -109,8 +148,32 @@ func NewStockSheet(label string, w, h float64, qty int) StockSheet {
 		Width:    w,
 		Height:   h,
 		Quantity: qty,
+		Grain:    GrainNone,
 		Tabs:     StockTabConfig{Enabled: false}, // Use defaults by default
 	}
+}
+
+// CanPlaceWithGrain checks whether a part with the given grain constraint can be
+// placed on a stock sheet with the given grain, optionally rotated 90 degrees.
+// Returns (canPlaceNormal, canPlaceRotated).
+//
+// Rules:
+//   - If the part grain is None, it can always be placed in either orientation.
+//   - If the stock grain is None, any part grain is acceptable; rotation is blocked
+//     only because the part has grain (rotating would flip the grain direction).
+//   - If both part and stock have a grain, the part grain must match the stock grain.
+//     Rotation would flip the grain so it is not allowed when both have grain.
+func CanPlaceWithGrain(partGrain, stockGrain Grain) (canNormal, canRotated bool) {
+	if partGrain == GrainNone {
+		return true, true
+	}
+	if stockGrain == GrainNone {
+		return true, false
+	}
+	if partGrain == stockGrain {
+		return true, false
+	}
+	return false, false
 }
 
 // Algorithm represents the optimizer algorithm to use.
@@ -157,6 +220,12 @@ type CutSettings struct {
 
 	// Toolpath ordering (minimize rapid travel distance)
 	OptimizeToolpath bool `json:"optimize_toolpath"` // Enable nearest-neighbor toolpath ordering
+
+	// Plunge entry strategy
+	PlungeType      PlungeType `json:"plunge_type"`       // Plunge strategy: direct, ramp, or helix
+	RampAngle       float64    `json:"ramp_angle"`        // Ramp entry angle in degrees (for ramp plunge)
+	HelixDiameter   float64    `json:"helix_diameter"`    // Helix diameter in mm (for helix plunge)
+	HelixRevPercent float64    `json:"helix_rev_percent"` // Helix depth per revolution as % of pass depth
 }
 
 // StockTabConfig defines holding tabs for the stock sheet edges.
@@ -407,6 +476,11 @@ func DefaultSettings() CutSettings {
 		},
 		GCodeProfile:     "Generic", // Default GCode profile
 		OptimizeToolpath: false,     // Disabled by default
+
+		PlungeType:      PlungeDirect, // Direct plunge by default
+		RampAngle:       3.0,          // 3 degree ramp angle
+		HelixDiameter:   5.0,          // 5mm helix diameter
+		HelixRevPercent: 50.0,         // 50% of pass depth per revolution
 	}
 }
 
