@@ -100,6 +100,114 @@ func (g *Generator) writeFooter(b *strings.Builder) {
 }
 
 func (g *Generator) writePart(b *strings.Builder, p model.Placement, partNum int) {
+	if len(p.Part.Outline) > 0 {
+		g.writeOutlinePart(b, p, partNum)
+	} else {
+		g.writeRectPart(b, p, partNum)
+	}
+}
+
+// writeOutlinePart generates GCode that follows the actual part outline
+// instead of a rectangular perimeter.
+func (g *Generator) writeOutlinePart(b *strings.Builder, p model.Placement, partNum int) {
+	toolR := g.Settings.ToolDiameter / 2.0
+
+	b.WriteString(g.comment(fmt.Sprintf("--- Part %d: %s (%.1f x %.1f, outline)%s ---",
+		partNum, p.Part.Label, p.Part.Width, p.Part.Height,
+		rotatedStr(p.Rotated))))
+
+	// Build the toolpath: offset each outline point outward by tool radius
+	outline := g.offsetOutline(p.Part.Outline, toolR)
+
+	// Translate outline to placement position on the stock sheet
+	translated := make(model.Outline, len(outline))
+	for i, pt := range outline {
+		translated[i] = model.Point2D{X: pt.X + p.X, Y: pt.Y + p.Y}
+	}
+
+	if len(translated) < 3 {
+		b.WriteString(g.comment("WARNING: outline has fewer than 3 points, skipping"))
+		return
+	}
+
+	numPasses := int(math.Ceil(g.Settings.CutDepth / g.Settings.PassDepth))
+
+	for pass := 1; pass <= numPasses; pass++ {
+		depth := float64(pass) * g.Settings.PassDepth
+		if depth > g.Settings.CutDepth {
+			depth = g.Settings.CutDepth
+		}
+
+		b.WriteString(g.comment(fmt.Sprintf("Pass %d/%d, depth=%.2fmm", pass, numPasses, depth)))
+
+		// Rapid to first point
+		b.WriteString(fmt.Sprintf("%s X%s Y%s\n", g.profile.RapidMove,
+			g.format(translated[0].X), g.format(translated[0].Y)))
+		// Plunge
+		b.WriteString(fmt.Sprintf("%s Z%s F%s\n", g.profile.FeedMove,
+			g.format(-depth), g.format(g.Settings.PlungeRate)))
+
+		// Follow outline
+		for i := 1; i < len(translated); i++ {
+			b.WriteString(fmt.Sprintf("%s X%s Y%s F%s\n", g.profile.FeedMove,
+				g.format(translated[i].X), g.format(translated[i].Y),
+				g.format(g.Settings.FeedRate)))
+		}
+		// Close the loop back to the first point
+		b.WriteString(fmt.Sprintf("%s X%s Y%s F%s\n", g.profile.FeedMove,
+			g.format(translated[0].X), g.format(translated[0].Y),
+			g.format(g.Settings.FeedRate)))
+
+		// Retract
+		b.WriteString(fmt.Sprintf("%s Z%s\n", g.profile.RapidMove, g.format(g.Settings.SafeZ)))
+	}
+
+	b.WriteString("\n")
+}
+
+// offsetOutline creates a simple outward offset of the outline by the given
+// distance. For each vertex, it computes the average outward normal of the
+// two adjacent edges and shifts the vertex along that normal.
+func (g *Generator) offsetOutline(outline model.Outline, dist float64) model.Outline {
+	n := len(outline)
+	if n < 3 {
+		return outline
+	}
+
+	result := make(model.Outline, n)
+	for i := 0; i < n; i++ {
+		prev := outline[(i-1+n)%n]
+		curr := outline[i]
+		next := outline[(i+1)%n]
+
+		// Edge vectors
+		e1x := curr.X - prev.X
+		e1y := curr.Y - prev.Y
+		e2x := next.X - curr.X
+		e2y := next.Y - curr.Y
+
+		// Outward normals (perpendicular, pointing left of travel direction)
+		n1x, n1y := normalize(-e1y, e1x)
+		n2x, n2y := normalize(-e2y, e2x)
+
+		// Average normal
+		nx := (n1x + n2x) / 2
+		ny := (n1y + n2y) / 2
+		nLen := math.Sqrt(nx*nx + ny*ny)
+		if nLen > 1e-9 {
+			nx /= nLen
+			ny /= nLen
+		}
+
+		result[i] = model.Point2D{
+			X: curr.X + nx*dist,
+			Y: curr.Y + ny*dist,
+		}
+	}
+	return result
+}
+
+func (g *Generator) writeRectPart(b *strings.Builder, p model.Placement, partNum int) {
 	toolR := g.Settings.ToolDiameter / 2.0
 
 	// The part rectangle in stock coordinates
@@ -278,4 +386,13 @@ func rotatedStr(r bool) string {
 		return " [rotated]"
 	}
 	return ""
+}
+
+// normalize returns a unit vector in the given direction.
+func normalize(x, y float64) (float64, float64) {
+	length := math.Sqrt(x*x + y*y)
+	if length < 1e-9 {
+		return 0, 0
+	}
+	return x / length, y / length
 }

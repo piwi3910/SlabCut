@@ -7,7 +7,9 @@ toolchain go1.24.11
 require (
 	fyne.io/fyne/v2 v2.5.4
 	github.com/google/uuid v1.6.0
+	github.com/stretchr/testify v1.11.1
 	github.com/xuri/excelize/v2 v2.10.0
+	github.com/yofu/dxf v0.0.0-20250806094206-f3988c7f0176
 )
 
 require (
@@ -35,7 +37,6 @@ require (
 	github.com/rymdport/portal v0.3.0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tiendc/go-deepcopy v1.7.1 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
