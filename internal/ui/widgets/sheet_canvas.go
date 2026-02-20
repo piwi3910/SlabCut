@@ -347,7 +347,7 @@ func (r *sheetCanvasRenderer) MinSize() fyne.Size {
 
 // RenderSheetResults creates a scrollable container of all sheet results
 // with zoom controls and interactive canvases.
-func RenderSheetResults(result *model.OptimizeResult, settings model.CutSettings) fyne.CanvasObject {
+func RenderSheetResults(result *model.OptimizeResult, settings model.CutSettings, parts ...[]model.Part) fyne.CanvasObject {
 	if result == nil || len(result.Sheets) == 0 {
 		return widget.NewLabel("No results yet. Add parts and stock, then click Optimize.")
 	}
@@ -443,6 +443,31 @@ func RenderSheetResults(result *model.OptimizeResult, settings model.CutSettings
 			totalOffcutArea, len(offcuts),
 		))
 		items = append(items, offcutSummary)
+	}
+
+	// Edge banding summary (if parts are provided and any have banding)
+	if len(parts) > 0 && len(parts[0]) > 0 {
+		bandingSummary := model.CalculateEdgeBanding(parts[0], 10.0) // Default 10% waste
+		if bandingSummary.TotalLinearMM > 0 {
+			items = append(items, widget.NewSeparator())
+			bandingHeader := widget.NewLabel("Edge Banding Summary:")
+			bandingHeader.TextStyle = fyne.TextStyle{Bold: true}
+			items = append(items, bandingHeader)
+
+			perPart := model.CalculatePerPartEdgeBanding(parts[0])
+			for _, pp := range perPart {
+				items = append(items, widget.NewLabel(fmt.Sprintf(
+					"  %s (%s): %.0f mm/piece x %d = %.0f mm",
+					pp.Label, pp.Edges, pp.LengthPerUnit, pp.Quantity, pp.TotalLength,
+				)))
+			}
+
+			items = append(items, widget.NewLabel(fmt.Sprintf(
+				"  Total: %.1f m (%d edges on %d pieces) | With 10%% waste: %.1f m",
+				bandingSummary.TotalLinearM, bandingSummary.EdgeCount, bandingSummary.PartCount,
+				bandingSummary.TotalWithWasteM,
+			)))
+		}
 	}
 
 	summaryText := fmt.Sprintf(
