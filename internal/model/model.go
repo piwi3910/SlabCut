@@ -233,7 +233,40 @@ type Part struct {
 	Grain       Grain       `json:"grain"`
 	Material    string      `json:"material,omitempty"`     // Material type (e.g., "Plywood", "MDF"); empty means unspecified
 	Outline     Outline     `json:"outline,omitempty"`      // Non-rectangular part outline; nil for rectangular parts
+	Cutouts     []Outline   `json:"cutouts,omitempty"`      // Interior cutout holes where smaller parts can be nested
 	EdgeBanding EdgeBanding `json:"edge_banding,omitempty"` // Which edges need banding
+}
+
+// CutoutBounds returns the bounding rectangles of all cutouts in the part.
+// Each returned rect is relative to the part origin (0,0).
+func (p Part) CutoutBounds() []CutoutRect {
+	var rects []CutoutRect
+	for _, c := range p.Cutouts {
+		if len(c) < 3 {
+			continue // Not a valid polygon
+		}
+		min, max := c.BoundingBox()
+		w := max.X - min.X
+		h := max.Y - min.Y
+		if w > 0 && h > 0 {
+			rects = append(rects, CutoutRect{
+				X:      min.X,
+				Y:      min.Y,
+				Width:  w,
+				Height: h,
+			})
+		}
+	}
+	return rects
+}
+
+// CutoutRect represents the bounding rectangle of an interior cutout,
+// relative to the part origin.
+type CutoutRect struct {
+	X      float64 `json:"x"`
+	Y      float64 `json:"y"`
+	Width  float64 `json:"width"`
+	Height float64 `json:"height"`
 }
 
 func NewPart(label string, w, h float64, qty int) Part {

@@ -119,6 +119,45 @@ func groupByMaterial(parts []model.Part, stocks []model.StockSheet) []materialGr
 	return groups
 }
 
+// addCutoutFreeRects injects free rectangles into the packer for interior cutout
+// zones of a placed part. This allows smaller parts to be nested inside the
+// waste holes of larger parts, maximizing material utilization.
+func addCutoutFreeRects(packer *guillotinePacker, part model.Part, partX, partY float64, rotated bool, kerf float64) {
+	cutoutRects := part.CutoutBounds()
+	for _, cr := range cutoutRects {
+		// Transform cutout coordinates from part-local to sheet-absolute
+		var absX, absY, absW, absH float64
+		if rotated {
+			// When the part is rotated 90 degrees, X and Y swap
+			absX = partX + cr.Y
+			absY = partY + cr.X
+			absW = cr.Height
+			absH = cr.Width
+		} else {
+			absX = partX + cr.X
+			absY = partY + cr.Y
+			absW = cr.Width
+			absH = cr.Height
+		}
+
+		// Shrink by kerf to account for the cut line around the cutout
+		absX += kerf
+		absY += kerf
+		absW -= 2 * kerf
+		absH -= 2 * kerf
+
+		// Only add if the cutout area is large enough to be useful
+		if absW > 1 && absH > 1 {
+			packer.freeRects = append(packer.freeRects, rect{
+				x: absX,
+				y: absY,
+				w: absW,
+				h: absH,
+			})
+		}
+	}
+}
+
 // optimizeGuillotine uses a guillotine-based shelf algorithm with best-fit decreasing heuristic.
 func (o *Optimizer) optimizeGuillotine(parts []model.Part, stocks []model.StockSheet) model.OptimizeResult {
 	// Expand parts by quantity into individual placement candidates
@@ -178,6 +217,8 @@ func (o *Optimizer) optimizeGuillotine(parts []model.Part, stocks []model.StockS
 
 		for _, part := range remaining {
 			placed := false
+			var placedX, placedY float64
+			var placedRotated bool
 
 			// Check grain compatibility between part and stock sheet
 			canNormal, canRotated := model.CanPlaceWithGrain(part.Grain, stock.Grain)
@@ -192,6 +233,8 @@ func (o *Optimizer) optimizeGuillotine(parts []model.Part, stocks []model.StockS
 						Rotated: false,
 					})
 					placed = true
+					placedX, placedY = x, y
+					placedRotated = false
 				}
 			}
 
@@ -205,7 +248,15 @@ func (o *Optimizer) optimizeGuillotine(parts []model.Part, stocks []model.StockS
 						Rotated: true,
 					})
 					placed = true
+					placedX, placedY = x, y
+					placedRotated = true
 				}
+			}
+
+			// If part was placed and has interior cutouts, add cutout bounding
+			// rectangles as free space for nesting smaller parts inside
+			if placed && len(part.Cutouts) > 0 {
+				addCutoutFreeRects(packer, part, placedX, placedY, placedRotated, o.Settings.KerfWidth)
 			}
 
 			if !placed {
