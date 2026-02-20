@@ -816,9 +816,9 @@ func TestMultiObjective_DefaultWeights(t *testing.T) {
 
 func TestMultiObjective_NormalizeWeights(t *testing.T) {
 	w := model.OptimizeWeights{
-		MinimizeWaste:  2.0,
-		MinimizeSheets: 2.0,
-		MinimizeCutLen: 0.0,
+		MinimizeWaste:   2.0,
+		MinimizeSheets:  2.0,
+		MinimizeCutLen:  0.0,
 		MinimizeJobTime: 0.0,
 	}
 	n := w.Normalize()
@@ -840,9 +840,9 @@ func TestMultiObjective_GeneticWithWasteWeight(t *testing.T) {
 	s := defaultTestSettings()
 	s.Algorithm = model.AlgorithmGenetic
 	s.OptimizeWeights = model.OptimizeWeights{
-		MinimizeWaste:  1.0,
-		MinimizeSheets: 0.0,
-		MinimizeCutLen: 0.0,
+		MinimizeWaste:   1.0,
+		MinimizeSheets:  0.0,
+		MinimizeCutLen:  0.0,
 		MinimizeJobTime: 0.0,
 	}
 
@@ -863,9 +863,9 @@ func TestMultiObjective_GeneticWithSheetWeight(t *testing.T) {
 	s := defaultTestSettings()
 	s.Algorithm = model.AlgorithmGenetic
 	s.OptimizeWeights = model.OptimizeWeights{
-		MinimizeWaste:  0.0,
-		MinimizeSheets: 1.0,
-		MinimizeCutLen: 0.0,
+		MinimizeWaste:   0.0,
+		MinimizeSheets:  1.0,
+		MinimizeCutLen:  0.0,
 		MinimizeJobTime: 0.0,
 	}
 
