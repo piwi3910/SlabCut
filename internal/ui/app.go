@@ -351,12 +351,13 @@ func (a *App) refreshPartsList() {
 	}
 
 	// Header
-	header := container.NewGridWithColumns(9,
+	header := container.NewGridWithColumns(10,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Material", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Banding", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -368,12 +369,17 @@ func (a *App) refreshPartsList() {
 	for i := range a.project.Parts {
 		idx := i // capture
 		p := a.project.Parts[idx]
-		row := container.NewGridWithColumns(9,
+		matLabel := "-"
+		if p.Material != "" {
+			matLabel = p.Material
+		}
+		row := container.NewGridWithColumns(10,
 			widget.NewLabel(p.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", p.Quantity)),
 			widget.NewLabel(p.Grain.String()),
+			widget.NewLabel(matLabel),
 			widget.NewLabel(p.EdgeBanding.String()),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditPartDialog(idx)
@@ -408,6 +414,9 @@ func (a *App) showAddPartDialog() {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected("None")
 
+	materialEntry := widget.NewEntry()
+	materialEntry.SetPlaceHolder("e.g., Plywood, MDF (optional)")
+
 	bandTop := widget.NewCheck("Top", nil)
 	bandBottom := widget.NewCheck("Bottom", nil)
 	bandLeft := widget.NewCheck("Left", nil)
@@ -421,6 +430,7 @@ func (a *App) showAddPartDialog() {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain", grainSelect),
+			widget.NewFormItem("Material", materialEntry),
 			widget.NewFormItem("Edge Banding", bandingRow),
 		},
 		func(ok bool) {
@@ -442,6 +452,7 @@ func (a *App) showAddPartDialog() {
 			case "Vertical":
 				part.Grain = model.GrainVertical
 			}
+			part.Material = strings.TrimSpace(materialEntry.Text)
 			part.EdgeBanding = model.EdgeBanding{
 				Top:    bandTop.Checked,
 				Bottom: bandBottom.Checked,
@@ -478,6 +489,10 @@ func (a *App) showEditPartDialog(idx int) {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected(p.Grain.String())
 
+	editMaterialEntry := widget.NewEntry()
+	editMaterialEntry.SetPlaceHolder("e.g., Plywood, MDF (optional)")
+	editMaterialEntry.SetText(p.Material)
+
 	bandTop := widget.NewCheck("Top", nil)
 	bandTop.Checked = p.EdgeBanding.Top
 	bandBottom := widget.NewCheck("Bottom", nil)
@@ -495,6 +510,7 @@ func (a *App) showEditPartDialog(idx int) {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain", grainSelect),
+			widget.NewFormItem("Material", editMaterialEntry),
 			widget.NewFormItem("Edge Banding", bandingRow),
 		},
 		func(ok bool) {
@@ -523,6 +539,7 @@ func (a *App) showEditPartDialog(idx int) {
 			default:
 				a.project.Parts[idx].Grain = model.GrainNone
 			}
+			a.project.Parts[idx].Material = strings.TrimSpace(editMaterialEntry.Text)
 			a.project.Parts[idx].EdgeBanding = model.EdgeBanding{
 				Top:    bandTop.Checked,
 				Bottom: bandBottom.Checked,
@@ -571,12 +588,13 @@ func (a *App) refreshStockList() {
 		return
 	}
 
-	header := container.NewGridWithColumns(8,
+	header := container.NewGridWithColumns(9,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Material", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Price/Sheet", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -591,12 +609,17 @@ func (a *App) refreshStockList() {
 		if s.PricePerSheet > 0 {
 			priceLabel = fmt.Sprintf("%.2f", s.PricePerSheet)
 		}
-		row := container.NewGridWithColumns(8,
+		stockMatLabel := "-"
+		if s.Material != "" {
+			stockMatLabel = s.Material
+		}
+		row := container.NewGridWithColumns(9,
 			widget.NewLabel(s.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", s.Quantity)),
 			widget.NewLabel(s.Grain.String()),
+			widget.NewLabel(stockMatLabel),
 			widget.NewLabel(priceLabel),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditStockDialog(idx)
@@ -664,6 +687,9 @@ func (a *App) showAddStockDialog() {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected("None")
 
+	stockMaterialEntry := widget.NewEntry()
+	stockMaterialEntry.SetPlaceHolder("e.g., Plywood, MDF (optional)")
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetPlaceHolder("0.00 (optional)")
 	priceEntry.SetText("0")
@@ -676,6 +702,7 @@ func (a *App) showAddStockDialog() {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain Direction", grainSelect),
+			widget.NewFormItem("Material", stockMaterialEntry),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -697,6 +724,7 @@ func (a *App) showAddStockDialog() {
 			case "Vertical":
 				sheet.Grain = model.GrainVertical
 			}
+			sheet.Material = strings.TrimSpace(stockMaterialEntry.Text)
 			sheet.PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.project.Stocks = append(a.project.Stocks, sheet)
 			a.refreshStockList()
@@ -725,6 +753,10 @@ func (a *App) showEditStockDialog(idx int) {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected(s.Grain.String())
 
+	editStockMaterialEntry := widget.NewEntry()
+	editStockMaterialEntry.SetPlaceHolder("e.g., Plywood, MDF (optional)")
+	editStockMaterialEntry.SetText(s.Material)
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetText(fmt.Sprintf("%.2f", s.PricePerSheet))
 
@@ -735,6 +767,7 @@ func (a *App) showEditStockDialog(idx int) {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain Direction", grainSelect),
+			widget.NewFormItem("Material", editStockMaterialEntry),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -761,6 +794,7 @@ func (a *App) showEditStockDialog(idx int) {
 			default:
 				a.project.Stocks[idx].Grain = model.GrainNone
 			}
+			a.project.Stocks[idx].Material = strings.TrimSpace(editStockMaterialEntry.Text)
 			a.project.Stocks[idx].PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.refreshStockList()
 		},
