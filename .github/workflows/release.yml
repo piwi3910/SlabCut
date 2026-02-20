@@ -51,8 +51,14 @@ jobs:
           # Convert PNG to ICO (multiple sizes for best display)
           convert logos/slabcut-icon.png -define icon:auto-resize=256,128,64,48,32,16 logos/slabcut-icon.ico
 
+          # Generate RC file with absolute path to avoid relative path issues
+          ICO_PATH="$(pwd)/logos/slabcut-icon.ico"
+          cat > /tmp/slabcut.rc << RCEOF
+          IDI_ICON1 ICON "${ICO_PATH}"
+          RCEOF
+
           # Compile the Windows resource file into a .syso that Go will auto-link
-          x86_64-w64-mingw32-windres cmd/slabcut/slabcut.rc -O coff -o cmd/slabcut/slabcut_windows_amd64.syso
+          x86_64-w64-mingw32-windres /tmp/slabcut.rc -O coff -o cmd/slabcut/slabcut_windows_amd64.syso
 
       - name: Build
         env:
