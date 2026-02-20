@@ -710,7 +710,7 @@ func (a *App) importExcel() {
 func (a *App) handleImportResult(result partimporter.ImportResult) {
 	// Show errors if any
 	if len(result.Errors) > 0 {
-	 errorMsg := "Errors encountered during import:\n\n" + strings.Join(result.Errors, "\n")
+		errorMsg := "Errors encountered during import:\n\n" + strings.Join(result.Errors, "\n")
 		dialog.ShowError(fmt.Errorf("%s", errorMsg), a.window)
 	}
 

@@ -261,7 +261,7 @@ func TestOptimize_MultipleStockSizes_StockPoolDepletion(t *testing.T) {
 	}
 
 	stocks := []model.StockSheet{
-		model.NewStockSheet("Small", 600, 600, 1),  // Only 1 small sheet (fits 1 part)
+		model.NewStockSheet("Small", 600, 600, 1),   // Only 1 small sheet (fits 1 part)
 		model.NewStockSheet("Large", 1200, 1200, 1), // 1 large sheet (fits remaining)
 	}
 

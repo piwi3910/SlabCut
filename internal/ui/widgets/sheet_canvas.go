@@ -14,14 +14,14 @@ import (
 
 // Part colors — cycle through these for visual distinction.
 var partColors = []color.NRGBA{
-	{R: 76, G: 175, B: 80, A: 200},   // green
-	{R: 33, G: 150, B: 243, A: 200},  // blue
-	{R: 255, G: 152, B: 0, A: 200},   // orange
-	{R: 156, G: 39, B: 176, A: 200},  // purple
-	{R: 0, G: 188, B: 212, A: 200},   // cyan
-	{R: 244, G: 67, B: 54, A: 200},   // red
-	{R: 255, G: 235, B: 59, A: 200},  // yellow
-	{R: 121, G: 85, B: 72, A: 200},   // brown
+	{R: 76, G: 175, B: 80, A: 200},  // green
+	{R: 33, G: 150, B: 243, A: 200}, // blue
+	{R: 255, G: 152, B: 0, A: 200},  // orange
+	{R: 156, G: 39, B: 176, A: 200}, // purple
+	{R: 0, G: 188, B: 212, A: 200},  // cyan
+	{R: 244, G: 67, B: 54, A: 200},  // red
+	{R: 255, G: 235, B: 59, A: 200}, // yellow
+	{R: 121, G: 85, B: 72, A: 200},  // brown
 }
 
 // SheetCanvas renders a visual representation of a single sheet result.
@@ -214,9 +214,9 @@ func (r *sheetCanvasRenderer) drawStockTabs(stock model.StockSheet, scale, canva
 	}
 }
 
-func (r *sheetCanvasRenderer) Layout(size fyne.Size)       {}
-func (r *sheetCanvasRenderer) Refresh()                    { r.rebuild() }
-func (r *sheetCanvasRenderer) Destroy()                    {}
+func (r *sheetCanvasRenderer) Layout(size fyne.Size)        {}
+func (r *sheetCanvasRenderer) Refresh()                     { r.rebuild() }
+func (r *sheetCanvasRenderer) Destroy()                     {}
 func (r *sheetCanvasRenderer) Objects() []fyne.CanvasObject { return r.objects }
 func (r *sheetCanvasRenderer) MinSize() fyne.Size {
 	sheet := r.sc.sheet
