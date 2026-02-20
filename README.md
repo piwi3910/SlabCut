@@ -1,4 +1,4 @@
-# CNCCalculator
+# SlabCut
 
 A cross-platform desktop application for optimizing rectangular cut lists and generating CNC-ready GCode. Built with Go and [Fyne](https://fyne.io/) — produces a single native binary for Windows, macOS, and Linux with no runtime dependencies.
 
@@ -57,10 +57,10 @@ make run
 make build
 
 # Cross-compile
-make windows        # produces cnc-calculator.exe
-make darwin-arm64   # produces cnc-calculator-darwin-arm64 (Apple Silicon)
-make darwin-amd64   # produces cnc-calculator-darwin-amd64 (Intel Mac)
-make linux          # produces cnc-calculator-linux
+make windows        # produces slabcut.exe
+make darwin-arm64   # produces slabcut-darwin-arm64 (Apple Silicon)
+make darwin-amd64   # produces slabcut-darwin-amd64 (Intel Mac)
+make linux          # produces slabcut-linux
 ```
 
 ### Packaged Builds (recommended for distribution)
@@ -83,8 +83,8 @@ make test
 ## Project Structure
 
 ```
-cnc-calculator/
-├── cmd/cnc-calculator/
+SlabCut/
+├── cmd/slabcut/
 │   └── main.go                 # Entry point
 ├── internal/
 │   ├── model/

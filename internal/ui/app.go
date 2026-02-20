@@ -12,12 +12,12 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/piwi3910/cnc-calculator/internal/engine"
-	"github.com/piwi3910/cnc-calculator/internal/gcode"
-	partimporter "github.com/piwi3910/cnc-calculator/internal/importer"
-	"github.com/piwi3910/cnc-calculator/internal/model"
-	"github.com/piwi3910/cnc-calculator/internal/project"
-	"github.com/piwi3910/cnc-calculator/internal/ui/widgets"
+	"github.com/piwi3910/SlabCut/internal/engine"
+	"github.com/piwi3910/SlabCut/internal/gcode"
+	partimporter "github.com/piwi3910/SlabCut/internal/importer"
+	"github.com/piwi3910/SlabCut/internal/model"
+	"github.com/piwi3910/SlabCut/internal/project"
+	"github.com/piwi3910/SlabCut/internal/ui/widgets"
 )
 
 // App holds all application state and UI references.
@@ -126,8 +126,8 @@ func (a *App) SetupMenus() {
 
 func (a *App) showAboutDialog() {
 	dialog.ShowInformation(
-		"About CNCCalculator",
-		"CNCCalculator — CNC Cut List Optimizer\n\n"+
+		"About SlabCut",
+		"SlabCut — CNC Cut List Optimizer\n\n"+
 			"A cross-platform desktop application for optimizing\n"+
 			"rectangular cut lists and generating CNC-ready GCode.\n\n"+
 			"Version 1.0.0",

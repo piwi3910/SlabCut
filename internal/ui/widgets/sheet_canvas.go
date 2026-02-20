@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 )
 
 // Part colors — cycle through these for visual distinction.

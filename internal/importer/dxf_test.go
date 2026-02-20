@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 	"github.com/yofu/dxf"
 )
 

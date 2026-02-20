@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/piwi3910/cnc-calculator/internal/model"
+import "github.com/piwi3910/SlabCut/internal/model"
 
 const defaultMaxDepth = 50
 

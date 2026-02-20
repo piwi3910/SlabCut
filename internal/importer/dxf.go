@@ -5,7 +5,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 	"github.com/yofu/dxf"
 	"github.com/yofu/dxf/entity"
 )

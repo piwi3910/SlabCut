@@ -1,10 +1,10 @@
-# CNCCalculator - Claude Instructions
+# SlabCut - Claude Instructions
 
-Project-specific instructions for CNCCalculator development.
+Project-specific instructions for SlabCut development.
 
 ## Project Overview
 
-CNCCalculator is a cross-platform desktop CNC cut list optimizer built with Go and Fyne. It generates optimized 2D rectangular cutting layouts and exports GCode for CNC machines.
+SlabCut is a cross-platform desktop CNC cut list optimizer built with Go and Fyne. It generates optimized 2D rectangular cutting layouts and exports GCode for CNC machines.
 
 **Tech Stack:**
 - Go 1.22+
@@ -35,8 +35,8 @@ CNCCalculator is a cross-platform desktop CNC cut list optimizer built with Go a
 ## Code Location
 
 ```
-github.com/piwi3910/cnc-calculator/
-├── cmd/cnc-calculator/     # Entry point (main.go)
+github.com/piwi3910/SlabCut/
+├── cmd/slabcut/            # Entry point (main.go)
 ├── internal/
 │   ├── model/              # Core types + inventory/library/config types
 │   ├── engine/             # Guillotine packer + genetic algorithm optimizer
@@ -59,24 +59,24 @@ github.com/piwi3910/cnc-calculator/
 
 ### Worktree Directory
 
-All worktrees live in `../cnc-calculator-worktrees/` (sibling to this repo).
+All worktrees live in `../SlabCut-worktrees/` (sibling to this repo).
 
 ### Commands
 
 ```bash
 # Create a worktree for a new feature/fix (from main worktree)
 git fetch origin
-git worktree add ../cnc-calculator-worktrees/issue-NUM-description -b issue-NUM-description origin/main
+git worktree add ../SlabCut-worktrees/issue-NUM-description -b issue-NUM-description origin/main
 
 # Work inside the worktree
-cd ../cnc-calculator-worktrees/issue-NUM-description
+cd ../SlabCut-worktrees/issue-NUM-description
 
 # Push and create PR from the worktree
 git push -u origin issue-NUM-description
 gh pr create --title "..." --body "..."
 
 # Cleanup after merge (from main worktree)
-git worktree remove ../cnc-calculator-worktrees/issue-NUM-description
+git worktree remove ../SlabCut-worktrees/issue-NUM-description
 git branch -d issue-NUM-description
 ```
 
@@ -149,10 +149,10 @@ graph TB
 
 ```bash
 # Run
-make run  # or: go run ./cmd/cnc-calculator
+make run  # or: go run ./cmd/slabcut
 
 # Build
-make build  # or: go build -o cnc-calculator ./cmd/cnc-calculator
+make build  # or: go build -o slabcut ./cmd/slabcut
 
 # Test
 make test  # or: go test ./...
@@ -203,6 +203,6 @@ go test ./internal/engine
 
 ## Module Information
 
-- **Module**: `github.com/piwi3910/cnc-calculator`
-- **Main package**: `cmd/cnc-calculator`
+- **Module**: `github.com/piwi3910/SlabCut`
+- **Main package**: `cmd/slabcut`
 - **Internal packages**: `model`, `engine`, `gcode`, `importer`, `export`, `ui`, `project`

@@ -2,36 +2,36 @@
 
 # Default: build for current platform
 build:
-	go build -o cnc-calculator ./cmd/cnc-calculator
+	go build -o slabcut ./cmd/slabcut
 
 run:
-	go run ./cmd/cnc-calculator
+	go run ./cmd/slabcut
 
 # Cross-compilation (basic, no app bundling)
 windows:
-	GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o cnc-calculator.exe ./cmd/cnc-calculator
+	GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui" -o slabcut.exe ./cmd/slabcut
 
 darwin-amd64:
-	GOOS=darwin GOARCH=amd64 go build -o cnc-calculator-darwin-amd64 ./cmd/cnc-calculator
+	GOOS=darwin GOARCH=amd64 go build -o slabcut-darwin-amd64 ./cmd/slabcut
 
 darwin-arm64:
-	GOOS=darwin GOARCH=arm64 go build -o cnc-calculator-darwin-arm64 ./cmd/cnc-calculator
+	GOOS=darwin GOARCH=arm64 go build -o slabcut-darwin-arm64 ./cmd/slabcut
 
 linux:
-	GOOS=linux GOARCH=amd64 go build -o cnc-calculator-linux ./cmd/cnc-calculator
+	GOOS=linux GOARCH=amd64 go build -o slabcut-linux ./cmd/slabcut
 
 # Proper packaging with fyne-cross (produces .exe installer / .app bundle)
 # Install first: go install github.com/fyne-io/fyne-cross@latest
 package-windows:
-	fyne-cross windows -arch=amd64 ./cmd/cnc-calculator
+	fyne-cross windows -arch=amd64 ./cmd/slabcut
 
 package-darwin:
-	fyne-cross darwin -arch=amd64,arm64 ./cmd/cnc-calculator
+	fyne-cross darwin -arch=amd64,arm64 ./cmd/slabcut
 
 # Run tests
 test:
 	go test ./...
 
 clean:
-	rm -f cnc-calculator cnc-calculator.exe cnc-calculator-darwin-* cnc-calculator-linux
+	rm -f slabcut slabcut.exe slabcut-darwin-* slabcut-linux
 	rm -rf fyne-cross

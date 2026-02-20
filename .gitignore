@@ -1,4 +1,5 @@
-# Binaries (root level only, not cmd/cnc-calculator/)
+# Binaries (root level only, not cmd/slabcut/)
+/slabcut
 /cnc-calculator
 /cutoptimizer
 *.exe

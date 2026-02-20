@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 )
 
 // GeneticConfig holds parameters for the genetic algorithm optimizer.

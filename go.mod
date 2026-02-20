@@ -1,4 +1,4 @@
-module github.com/piwi3910/cnc-calculator
+module github.com/piwi3910/SlabCut
 
 go 1.24.0
 

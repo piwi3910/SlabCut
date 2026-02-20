@@ -3,7 +3,7 @@ package engine
 import (
 	"sort"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 )
 
 // Optimizer runs the 2D bin-packing algorithm.

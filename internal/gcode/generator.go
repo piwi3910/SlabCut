@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/piwi3910/cnc-calculator/internal/model"
+	"github.com/piwi3910/SlabCut/internal/model"
 )
 
 // Generator produces GCode from an optimized sheet layout.
