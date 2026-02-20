@@ -255,6 +255,8 @@ func (g *geneticOptimizer) decode(c chromosome) model.OptimizeResult {
 
 		for _, pp := range remaining {
 			placed := false
+			var placedX, placedY float64
+			var placedRotated bool
 
 			// Check grain compatibility between part and stock sheet
 			canNormal, canRotated := model.CanPlaceWithGrain(pp.part.Grain, stock.Grain)
@@ -269,6 +271,8 @@ func (g *geneticOptimizer) decode(c chromosome) model.OptimizeResult {
 						Rotated: true,
 					})
 					placed = true
+					placedX, placedY = x, y
+					placedRotated = true
 				}
 				// Fall back to normal orientation
 				if !placed && canNormal {
@@ -280,6 +284,8 @@ func (g *geneticOptimizer) decode(c chromosome) model.OptimizeResult {
 							Rotated: false,
 						})
 						placed = true
+						placedX, placedY = x, y
+						placedRotated = false
 					}
 				}
 			} else {
@@ -293,6 +299,8 @@ func (g *geneticOptimizer) decode(c chromosome) model.OptimizeResult {
 							Rotated: false,
 						})
 						placed = true
+						placedX, placedY = x, y
+						placedRotated = false
 					}
 				}
 				// Fall back to rotated if grain allows
@@ -305,8 +313,16 @@ func (g *geneticOptimizer) decode(c chromosome) model.OptimizeResult {
 							Rotated: true,
 						})
 						placed = true
+						placedX, placedY = x, y
+						placedRotated = true
 					}
 				}
+			}
+
+			// If part was placed and has interior cutouts, add cutout bounding
+			// rectangles as free space for nesting smaller parts inside
+			if placed && len(pp.part.Cutouts) > 0 {
+				addCutoutFreeRects(packer, pp.part, placedX, placedY, placedRotated, g.settings.KerfWidth)
 			}
 
 			if !placed {

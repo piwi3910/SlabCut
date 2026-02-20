@@ -653,3 +653,152 @@ func TestOptimize_MultiMaterial_BackwardCompatible(t *testing.T) {
 	require.Len(t, result.Sheets, 1)
 	assert.Len(t, result.Sheets[0].Placements, 2)
 }
+
+// ─── Interior Cutout Nesting Tests ─────────────────────────────
+
+func TestCutoutBounds(t *testing.T) {
+	part := model.NewPart("WithHole", 500, 400, 1)
+	part.Cutouts = []model.Outline{
+		{
+			{X: 100, Y: 100},
+			{X: 200, Y: 100},
+			{X: 200, Y: 200},
+			{X: 100, Y: 200},
+		},
+	}
+
+	bounds := part.CutoutBounds()
+	require.Len(t, bounds, 1)
+	assert.Equal(t, 100.0, bounds[0].X)
+	assert.Equal(t, 100.0, bounds[0].Y)
+	assert.Equal(t, 100.0, bounds[0].Width)
+	assert.Equal(t, 100.0, bounds[0].Height)
+}
+
+func TestCutoutBounds_MultipleCutouts(t *testing.T) {
+	part := model.NewPart("MultiHole", 500, 400, 1)
+	part.Cutouts = []model.Outline{
+		{
+			{X: 50, Y: 50},
+			{X: 150, Y: 50},
+			{X: 150, Y: 150},
+			{X: 50, Y: 150},
+		},
+		{
+			{X: 300, Y: 200},
+			{X: 450, Y: 200},
+			{X: 450, Y: 350},
+			{X: 300, Y: 350},
+		},
+	}
+
+	bounds := part.CutoutBounds()
+	require.Len(t, bounds, 2)
+	assert.Equal(t, 100.0, bounds[0].Width)
+	assert.Equal(t, 100.0, bounds[0].Height)
+	assert.Equal(t, 150.0, bounds[1].Width)
+	assert.Equal(t, 150.0, bounds[1].Height)
+}
+
+func TestOptimize_CutoutNesting_SmallPartInsideCutout(t *testing.T) {
+	opt := New(defaultTestSettings())
+
+	// Large part with a 200x200 interior cutout starting at (150,100)
+	largePart := model.NewPart("Shelf", 500, 400, 1)
+	largePart.Cutouts = []model.Outline{
+		{
+			{X: 150, Y: 100},
+			{X: 350, Y: 100},
+			{X: 350, Y: 300},
+			{X: 150, Y: 300},
+		},
+	}
+
+	// Small part that should fit inside the cutout (200x200)
+	smallPart := model.NewPart("Bracket", 100, 100, 1)
+
+	// Stock just large enough for the shelf part
+	parts := []model.Part{largePart, smallPart}
+	stocks := []model.StockSheet{model.NewStockSheet("Sheet", 500, 400, 1)}
+
+	result := opt.Optimize(parts, stocks)
+
+	require.Len(t, result.UnplacedParts, 0, "small part should nest inside cutout")
+	require.Len(t, result.Sheets, 1)
+	assert.Len(t, result.Sheets[0].Placements, 2, "both parts should be on same sheet")
+}
+
+func TestOptimize_CutoutNesting_NoCutouts(t *testing.T) {
+	// Parts without cutouts should work normally
+	opt := New(defaultTestSettings())
+
+	parts := []model.Part{
+		model.NewPart("A", 500, 300, 1),
+		model.NewPart("B", 400, 200, 1),
+	}
+	stocks := []model.StockSheet{model.NewStockSheet("Sheet", 1000, 600, 1)}
+
+	result := opt.Optimize(parts, stocks)
+
+	require.Len(t, result.UnplacedParts, 0)
+	require.Len(t, result.Sheets, 1)
+	assert.Len(t, result.Sheets[0].Placements, 2)
+}
+
+func TestOptimize_CutoutNesting_TooSmallCutout(t *testing.T) {
+	opt := New(defaultTestSettings())
+
+	// Large part with a tiny 20x20 cutout
+	largePart := model.NewPart("Panel", 500, 400, 1)
+	largePart.Cutouts = []model.Outline{
+		{
+			{X: 200, Y: 200},
+			{X: 220, Y: 200},
+			{X: 220, Y: 220},
+			{X: 200, Y: 220},
+		},
+	}
+
+	// Part too large for the tiny cutout
+	smallPart := model.NewPart("Widget", 50, 50, 1)
+
+	// Stock only large enough for the panel
+	parts := []model.Part{largePart, smallPart}
+	stocks := []model.StockSheet{model.NewStockSheet("Sheet", 500, 400, 1)}
+
+	result := opt.Optimize(parts, stocks)
+
+	// The small part won't fit in the 20x20 cutout (too small)
+	assert.Len(t, result.UnplacedParts, 1, "part too large for cutout should be unplaced")
+}
+
+func TestOptimize_CutoutNesting_MultipleSmallParts(t *testing.T) {
+	opt := New(defaultTestSettings())
+
+	// Large part with a 300x200 cutout
+	largePart := model.NewPart("Frame", 600, 400, 1)
+	largePart.Cutouts = []model.Outline{
+		{
+			{X: 150, Y: 100},
+			{X: 450, Y: 100},
+			{X: 450, Y: 300},
+			{X: 150, Y: 300},
+		},
+	}
+
+	// Multiple small parts that should fit inside
+	parts := []model.Part{
+		largePart,
+		model.NewPart("Small1", 100, 100, 1),
+		model.NewPart("Small2", 100, 100, 1),
+	}
+
+	// Stock just large enough for the frame
+	stocks := []model.StockSheet{model.NewStockSheet("Sheet", 600, 400, 1)}
+
+	result := opt.Optimize(parts, stocks)
+
+	require.Len(t, result.UnplacedParts, 0, "small parts should nest inside cutout")
+	require.Len(t, result.Sheets, 1)
+	assert.Len(t, result.Sheets[0].Placements, 3, "all three parts should be on same sheet")
+}

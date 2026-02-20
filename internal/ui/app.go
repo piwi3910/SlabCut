@@ -372,13 +372,14 @@ func (a *App) refreshPartsList() {
 	}
 
 	// Header
-	header := container.NewGridWithColumns(10,
+	header := container.NewGridWithColumns(11,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Material", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Cutouts", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Banding", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -394,13 +395,18 @@ func (a *App) refreshPartsList() {
 		if p.Material != "" {
 			matLabel = p.Material
 		}
-		row := container.NewGridWithColumns(10,
+		cutoutLabel := "-"
+		if len(p.Cutouts) > 0 {
+			cutoutLabel = fmt.Sprintf("%d", len(p.Cutouts))
+		}
+		row := container.NewGridWithColumns(11,
 			widget.NewLabel(p.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", p.Quantity)),
 			widget.NewLabel(p.Grain.String()),
 			widget.NewLabel(matLabel),
+			widget.NewLabel(cutoutLabel),
 			widget.NewLabel(p.EdgeBanding.String()),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditPartDialog(idx)
