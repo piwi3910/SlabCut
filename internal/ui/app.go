@@ -348,12 +348,13 @@ func (a *App) refreshPartsList() {
 	}
 
 	// Header
-	header := container.NewGridWithColumns(8,
+	header := container.NewGridWithColumns(9,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Banding", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -364,12 +365,13 @@ func (a *App) refreshPartsList() {
 	for i := range a.project.Parts {
 		idx := i // capture
 		p := a.project.Parts[idx]
-		row := container.NewGridWithColumns(8,
+		row := container.NewGridWithColumns(9,
 			widget.NewLabel(p.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", p.Quantity)),
 			widget.NewLabel(p.Grain.String()),
+			widget.NewLabel(p.EdgeBanding.String()),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditPartDialog(idx)
 			}),
@@ -403,6 +405,12 @@ func (a *App) showAddPartDialog() {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected("None")
 
+	bandTop := widget.NewCheck("Top", nil)
+	bandBottom := widget.NewCheck("Bottom", nil)
+	bandLeft := widget.NewCheck("Left", nil)
+	bandRight := widget.NewCheck("Right", nil)
+	bandingRow := container.NewHBox(bandTop, bandBottom, bandLeft, bandRight)
+
 	form := dialog.NewForm("Add Part", "Add", "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("Label", labelEntry),
@@ -410,6 +418,7 @@ func (a *App) showAddPartDialog() {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain", grainSelect),
+			widget.NewFormItem("Edge Banding", bandingRow),
 		},
 		func(ok bool) {
 			if !ok {
@@ -430,6 +439,12 @@ func (a *App) showAddPartDialog() {
 			case "Vertical":
 				part.Grain = model.GrainVertical
 			}
+			part.EdgeBanding = model.EdgeBanding{
+				Top:    bandTop.Checked,
+				Bottom: bandBottom.Checked,
+				Left:   bandLeft.Checked,
+				Right:  bandRight.Checked,
+			}
 
 			a.saveState("Add Part")
 			a.project.Parts = append(a.project.Parts, part)
@@ -437,7 +452,7 @@ func (a *App) showAddPartDialog() {
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(400, 350))
+	form.Resize(fyne.NewSize(400, 420))
 	form.Show()
 }
 
@@ -460,6 +475,16 @@ func (a *App) showEditPartDialog(idx int) {
 	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
 	grainSelect.SetSelected(p.Grain.String())
 
+	bandTop := widget.NewCheck("Top", nil)
+	bandTop.Checked = p.EdgeBanding.Top
+	bandBottom := widget.NewCheck("Bottom", nil)
+	bandBottom.Checked = p.EdgeBanding.Bottom
+	bandLeft := widget.NewCheck("Left", nil)
+	bandLeft.Checked = p.EdgeBanding.Left
+	bandRight := widget.NewCheck("Right", nil)
+	bandRight.Checked = p.EdgeBanding.Right
+	bandingRow := container.NewHBox(bandTop, bandBottom, bandLeft, bandRight)
+
 	form := dialog.NewForm("Edit Part", "Save", "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("Label", labelEntry),
@@ -467,6 +492,7 @@ func (a *App) showEditPartDialog(idx int) {
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
 			widget.NewFormItem("Grain", grainSelect),
+			widget.NewFormItem("Edge Banding", bandingRow),
 		},
 		func(ok bool) {
 			if !ok {
@@ -494,11 +520,17 @@ func (a *App) showEditPartDialog(idx int) {
 			default:
 				a.project.Parts[idx].Grain = model.GrainNone
 			}
+			a.project.Parts[idx].EdgeBanding = model.EdgeBanding{
+				Top:    bandTop.Checked,
+				Bottom: bandBottom.Checked,
+				Left:   bandLeft.Checked,
+				Right:  bandRight.Checked,
+			}
 			a.refreshPartsList()
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(400, 350))
+	form.Resize(fyne.NewSize(400, 420))
 	form.Show()
 }
 
@@ -901,7 +933,7 @@ func (a *App) refreshResults() {
 	toolbar := container.NewHBox(layout.NewSpacer(), saveOffcutsBtn, simulateBtn, exportBtn)
 
 	// Build both cut layout and inline simulation views
-	sheetResults := widgets.RenderSheetResults(a.project.Result, a.project.Settings)
+	sheetResults := widgets.RenderSheetResults(a.project.Result, a.project.Settings, a.project.Parts)
 
 	// Inline simulation viewport for the first sheet (most common use case)
 	gen := gcode.New(a.project.Settings)

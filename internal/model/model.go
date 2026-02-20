@@ -145,15 +145,94 @@ func (o Outline) Translate(dx, dy float64) Outline {
 	return result
 }
 
+// EdgeBanding flags which edges of a part need edge banding applied.
+type EdgeBanding struct {
+	Top    bool `json:"top"`    // Banding on the top edge (width side)
+	Bottom bool `json:"bottom"` // Banding on the bottom edge (width side)
+	Left   bool `json:"left"`   // Banding on the left edge (height side)
+	Right  bool `json:"right"`  // Banding on the right edge (height side)
+}
+
+// HasAny returns true if any edge needs banding.
+func (eb EdgeBanding) HasAny() bool {
+	return eb.Top || eb.Bottom || eb.Left || eb.Right
+}
+
+// EdgeCount returns the number of edges that need banding.
+func (eb EdgeBanding) EdgeCount() int {
+	count := 0
+	if eb.Top {
+		count++
+	}
+	if eb.Bottom {
+		count++
+	}
+	if eb.Left {
+		count++
+	}
+	if eb.Right {
+		count++
+	}
+	return count
+}
+
+// LinearLength returns the total linear length of edge banding needed for one piece
+// of the given dimensions (in mm).
+func (eb EdgeBanding) LinearLength(width, height float64) float64 {
+	var total float64
+	if eb.Top {
+		total += width
+	}
+	if eb.Bottom {
+		total += width
+	}
+	if eb.Left {
+		total += height
+	}
+	if eb.Right {
+		total += height
+	}
+	return total
+}
+
+// String returns a human-readable summary of banded edges.
+func (eb EdgeBanding) String() string {
+	if !eb.HasAny() {
+		return "None"
+	}
+	var edges []string
+	if eb.Top {
+		edges = append(edges, "T")
+	}
+	if eb.Bottom {
+		edges = append(edges, "B")
+	}
+	if eb.Left {
+		edges = append(edges, "L")
+	}
+	if eb.Right {
+		edges = append(edges, "R")
+	}
+	result := ""
+	for i, e := range edges {
+		if i > 0 {
+			result += "+"
+		}
+		result += e
+	}
+	return result
+}
+
 // Part represents a required piece to be cut.
 type Part struct {
-	ID       string  `json:"id"`
-	Label    string  `json:"label"`
-	Width    float64 `json:"width"`  // mm (bounding box width for non-rectangular parts)
-	Height   float64 `json:"height"` // mm (bounding box height for non-rectangular parts)
-	Quantity int     `json:"quantity"`
-	Grain    Grain   `json:"grain"`
-	Outline  Outline `json:"outline,omitempty"` // Non-rectangular part outline; nil for rectangular parts
+	ID          string      `json:"id"`
+	Label       string      `json:"label"`
+	Width       float64     `json:"width"`  // mm (bounding box width for non-rectangular parts)
+	Height      float64     `json:"height"` // mm (bounding box height for non-rectangular parts)
+	Quantity    int         `json:"quantity"`
+	Grain       Grain       `json:"grain"`
+	Outline     Outline     `json:"outline,omitempty"`      // Non-rectangular part outline; nil for rectangular parts
+	EdgeBanding EdgeBanding `json:"edge_banding,omitempty"` // Which edges need banding
 }
 
 func NewPart(label string, w, h float64, qty int) Part {

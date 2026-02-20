@@ -48,6 +48,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
 - **Material Pricing** — Track price per sheet in stock inventory; view total material cost in optimization results
 - **Offcuts / Remnants Tracking** — Automatically detects usable rectangular remnants after optimization; save offcuts to stock inventory for future projects
 - **Purchasing Calculator** — Calculate sheets needed, board feet, and estimated cost with configurable waste factor (Tools menu)
+- **Edge Banding Calculator** — Mark which edges need banding per part (T/B/L/R); view per-part and total banding length with waste factor in results
 - **Admin Menu** — Application settings, inventory management, data backup/restore
 - **Stock Size Presets** — Quick-select dropdown with common panel sizes (Full, Half, Quarter sheet, Euro sizes)
 
