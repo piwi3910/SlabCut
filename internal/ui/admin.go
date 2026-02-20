@@ -78,6 +78,7 @@ func (a *App) showSettingsDialog() {
 				return
 			}
 			a.config = cfg
+			a.applyTheme()
 			if err := a.saveConfig(); err != nil {
 				dialog.ShowError(fmt.Errorf("failed to save settings: %w", err), a.window)
 			} else {

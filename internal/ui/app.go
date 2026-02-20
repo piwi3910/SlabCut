@@ -24,6 +24,7 @@ import (
 
 // App holds all application state and UI references.
 type App struct {
+	app     fyne.App
 	window  fyne.Window
 	project model.Project
 	config  model.AppConfig
@@ -42,7 +43,7 @@ type App struct {
 	profileSelector *widget.Select
 }
 
-func NewApp(window fyne.Window) *App {
+func NewApp(application fyne.App, window fyne.Window) *App {
 	cfg, err := project.LoadAppConfig(project.DefaultConfigPath())
 	if err != nil {
 		cfg = model.DefaultAppConfig()
@@ -58,6 +59,7 @@ func NewApp(window fyne.Window) *App {
 	}
 
 	app := &App{
+		app:     application,
 		window:  window,
 		project: proj,
 		config:  cfg,
@@ -66,7 +68,20 @@ func NewApp(window fyne.Window) *App {
 	}
 	app.loadCustomProfiles()
 	app.loadInventory()
+	app.applyTheme()
 	return app
+}
+
+// applyTheme sets the Fyne theme based on the current config.
+func (a *App) applyTheme() {
+	switch a.config.Theme {
+	case "light":
+		a.app.Settings().SetTheme(theme.LightTheme())
+	case "dark":
+		a.app.Settings().SetTheme(theme.DarkTheme())
+	default:
+		a.app.Settings().SetTheme(theme.DefaultTheme())
+	}
 }
 
 // loadInventory loads tool and stock inventory from the default path.
@@ -785,7 +800,7 @@ func (a *App) buildProfileSelector() fyne.CanvasObject {
 // ─── Results Panel ─────────────────────────────────────────
 
 func (a *App) buildResultsPanel() fyne.CanvasObject {
-	a.resultContainer = container.NewStack(
+	a.resultContainer = container.NewVBox(
 		widget.NewLabel("No results yet. Add parts and stock, then click Optimize."),
 	)
 	return a.resultContainer

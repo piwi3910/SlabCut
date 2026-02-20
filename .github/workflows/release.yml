@@ -16,19 +16,19 @@ jobs:
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            binary: slabcut-linux-amd64
+            artifact: slabcut-linux-amd64
           - os: ubuntu-latest
             goos: windows
             goarch: amd64
-            binary: slabcut-windows-amd64.exe
+            artifact: slabcut-windows-amd64.exe
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            binary: slabcut-darwin-arm64
+            artifact: slabcut-darwin-arm64
           - os: macos-latest
             goos: darwin
             goarch: amd64
-            binary: slabcut-darwin-amd64
+            artifact: slabcut-darwin-amd64
 
     runs-on: ${{ matrix.os }}
 
@@ -44,7 +44,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev gcc-mingw-w64-x86-64
 
-      - name: Build
+      - name: Install fyne CLI
+        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+
+      - name: Build and package
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -52,25 +55,46 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME}"
           COMMIT="$(git rev-parse --short HEAD)"
+          LDFLAGS="-X github.com/piwi3910/SlabCut/internal/version.Version=${VERSION} -X github.com/piwi3910/SlabCut/internal/version.Commit=${COMMIT}"
 
           # Windows cross-compile from Linux needs mingw
           if [ "$GOOS" = "windows" ]; then
             export CC=x86_64-w64-mingw32-gcc
-            EXTRA_LDFLAGS="-H windowsgui"
-          else
-            EXTRA_LDFLAGS=""
+            LDFLAGS="${LDFLAGS} -H windowsgui"
           fi
 
-          go build \
-            -ldflags="-X github.com/piwi3910/SlabCut/internal/version.Version=${VERSION} -X github.com/piwi3910/SlabCut/internal/version.Commit=${COMMIT} ${EXTRA_LDFLAGS}" \
-            -o "${{ matrix.binary }}" \
-            ./cmd/slabcut
+          # Use fyne package for native OS builds (embeds icon properly)
+          # For cross-OS builds, fall back to go build
+          if [ "$GOOS" = "$(go env GOHOSTOS)" ]; then
+            fyne package -os "$GOOS" -icon logos/slabcut-icon.png \
+              -name SlabCut -appID com.piwi3910.slabcut \
+              -src ./cmd/slabcut
+
+            # Collect the output
+            if [ "$GOOS" = "darwin" ]; then
+              # fyne package creates SlabCut.app; tar it for release
+              tar czf "${{ matrix.artifact }}.tar.gz" SlabCut.app
+            elif [ "$GOOS" = "windows" ]; then
+              mv SlabCut.exe "${{ matrix.artifact }}"
+            else
+              mv SlabCut "${{ matrix.artifact }}"
+            fi
+          else
+            # Cross-compile with go build (icon embedded via go:embed at runtime)
+            go build \
+              -ldflags="${LDFLAGS}" \
+              -o "${{ matrix.artifact }}" \
+              ./cmd/slabcut
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.binary }}
-          path: ${{ matrix.binary }}
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
 
   release:
     needs: build
@@ -89,7 +113,7 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           mkdir -p release
-          find artifacts -type f -exec cp {} release/ \;
+          find artifacts -type f \( -name "slabcut-*" -o -name "*.tar.gz" \) -exec cp {} release/ \;
           ls -la release/
 
           gh release create "${TAG_NAME}" release/* \
