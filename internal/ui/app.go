@@ -26,6 +26,7 @@ type App struct {
 	window  fyne.Window
 	project model.Project
 	config  model.AppConfig
+	library model.PartsLibrary
 	tabs    *container.AppTabs
 	history *History
 
@@ -49,10 +50,17 @@ func NewApp(window fyne.Window) *App {
 	proj := model.NewProject()
 	cfg.ApplyToSettings(&proj.Settings)
 
+	lib, libErr := project.LoadDefaultLibrary()
+	if libErr != nil {
+		fmt.Printf("Warning: could not load parts library: %v\n", libErr)
+		lib = model.NewPartsLibrary()
+	}
+
 	app := &App{
 		window:  window,
 		project: proj,
 		config:  cfg,
+		library: lib,
 		history: NewHistory(),
 	}
 	app.loadCustomProfiles()
@@ -170,8 +178,7 @@ func (a *App) SetupMenus() {
 	// Admin Menu
 	adminMenu := fyne.NewMenu("Admin",
 		fyne.NewMenuItem("Parts Library...", func() {
-			dialog.ShowInformation("Parts Library",
-				"Coming soon — see issue #12 for progress.", a.window)
+			a.showLibraryManager()
 		}),
 		fyne.NewMenuItem("Tool Inventory...", func() {
 			a.showToolInventoryDialog()
@@ -290,10 +297,15 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 		a.showAddPartDialog()
 	})
 
+	addFromLibBtn := widget.NewButtonWithIcon("Add from Library", theme.FolderOpenIcon(), func() {
+		a.showAddFromLibraryDialog()
+	})
+
 	return container.NewBorder(
 		container.NewHBox(
 			widget.NewLabelWithStyle("Required Parts", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			layout.NewSpacer(),
+			addFromLibBtn,
 			addBtn,
 		),
 		nil, nil, nil,
@@ -310,12 +322,13 @@ func (a *App) refreshPartsList() {
 	}
 
 	// Header
-	header := container.NewGridWithColumns(7,
+	header := container.NewGridWithColumns(8,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 	)
@@ -325,7 +338,7 @@ func (a *App) refreshPartsList() {
 	for i := range a.project.Parts {
 		idx := i // capture
 		p := a.project.Parts[idx]
-		row := container.NewGridWithColumns(7,
+		row := container.NewGridWithColumns(8,
 			widget.NewLabel(p.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", p.Height)),
@@ -333,6 +346,9 @@ func (a *App) refreshPartsList() {
 			widget.NewLabel(p.Grain.String()),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditPartDialog(idx)
+			}),
+			widget.NewButtonWithIcon("", theme.DownloadIcon(), func() {
+				a.showSaveToLibraryDialog(a.project.Parts[idx])
 			}),
 			widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {
 				a.saveState("Delete Part")
