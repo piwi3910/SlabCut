@@ -27,7 +27,13 @@ func (g *Generator) GenerateSheet(sheet model.SheetResult, sheetIndex int) strin
 
 	g.writeHeader(&b, sheet, sheetIndex)
 
-	for i, placement := range sheet.Placements {
+	placements := sheet.Placements
+	if g.Settings.OptimizeToolpath && len(placements) > 1 {
+		placements = g.orderPlacements(placements)
+		b.WriteString(g.comment("Toolpath ordering: nearest-neighbor optimization"))
+	}
+
+	for i, placement := range placements {
 		g.writePart(&b, placement, i+1)
 	}
 
@@ -42,6 +48,86 @@ func (g *Generator) GenerateAll(result model.OptimizeResult) []string {
 		codes = append(codes, g.GenerateSheet(sheet, i+1))
 	}
 	return codes
+}
+
+// orderPlacements reorders placements using a nearest-neighbor heuristic to
+// minimize total rapid travel distance. Starting from the origin (0,0), each
+// subsequent placement is chosen as the one closest to the previous placement's
+// center. This reduces machine idle time and total cycle time.
+func (g *Generator) orderPlacements(placements []model.Placement) []model.Placement {
+	n := len(placements)
+	if n <= 1 {
+		return placements
+	}
+
+	// Work on a copy to avoid modifying the original
+	remaining := make([]model.Placement, n)
+	copy(remaining, placements)
+	ordered := make([]model.Placement, 0, n)
+
+	// Start from origin (0, 0)
+	curX, curY := 0.0, 0.0
+
+	for len(remaining) > 0 {
+		bestIdx := 0
+		bestDist := math.MaxFloat64
+
+		for i, p := range remaining {
+			// Use the center of the placement as the reference point
+			cx := p.X + p.PlacedWidth()/2.0
+			cy := p.Y + p.PlacedHeight()/2.0
+			dx := cx - curX
+			dy := cy - curY
+			dist := math.Sqrt(dx*dx + dy*dy)
+			if dist < bestDist {
+				bestDist = dist
+				bestIdx = i
+			}
+		}
+
+		chosen := remaining[bestIdx]
+		ordered = append(ordered, chosen)
+		curX = chosen.X + chosen.PlacedWidth()/2.0
+		curY = chosen.Y + chosen.PlacedHeight()/2.0
+
+		// Remove chosen from remaining
+		remaining[bestIdx] = remaining[len(remaining)-1]
+		remaining = remaining[:len(remaining)-1]
+	}
+
+	return ordered
+}
+
+// placementDistance returns the Euclidean distance between the centers of two placements.
+func placementDistance(a, b model.Placement) float64 {
+	ax := a.X + a.PlacedWidth()/2.0
+	ay := a.Y + a.PlacedHeight()/2.0
+	bx := b.X + b.PlacedWidth()/2.0
+	by := b.Y + b.PlacedHeight()/2.0
+	dx := ax - bx
+	dy := ay - by
+	return math.Sqrt(dx*dx + dy*dy)
+}
+
+// TotalRapidDistance calculates the total rapid travel distance for a sequence
+// of placements, starting from the origin (0,0). This is useful for comparing
+// ordered vs unordered toolpaths.
+func TotalRapidDistance(placements []model.Placement) float64 {
+	if len(placements) == 0 {
+		return 0
+	}
+	total := 0.0
+	curX, curY := 0.0, 0.0
+	for _, p := range placements {
+		cx := p.X + p.PlacedWidth()/2.0
+		cy := p.Y + p.PlacedHeight()/2.0
+		dx := cx - curX
+		dy := cy - curY
+		total += math.Sqrt(dx*dx + dy*dy)
+		curX = cx
+		curY = cy
+	}
+	return total
 }
 
 func (g *Generator) writeHeader(b *strings.Builder, sheet model.SheetResult, idx int) {

@@ -253,3 +253,112 @@ func TestDefaultSettings_LeadInOutDisabled(t *testing.T) {
 		t.Errorf("expected default LeadInAngle to be 90, got %f", s.LeadInAngle)
 	}
 }
+
+// ─── Toolpath Ordering Tests ────────────────────────────────
+
+func TestToolpathOrdering_Disabled(t *testing.T) {
+	settings := newTestSettings()
+	settings.OptimizeToolpath = false
+	gen := New(settings)
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	if strings.Contains(code, "Toolpath ordering") {
+		t.Error("expected no toolpath ordering comment when disabled")
+	}
+}
+
+func TestToolpathOrdering_Enabled(t *testing.T) {
+	settings := newTestSettings()
+	settings.OptimizeToolpath = true
+	gen := New(settings)
+
+	sheet := model.SheetResult{
+		Stock: model.StockSheet{
+			ID: "stock1", Label: "TestStock",
+			Width: 1000, Height: 500, Quantity: 1,
+		},
+		Placements: []model.Placement{
+			{Part: model.Part{ID: "p1", Label: "A", Width: 100, Height: 50, Quantity: 1}, X: 800, Y: 400},
+			{Part: model.Part{ID: "p2", Label: "B", Width: 100, Height: 50, Quantity: 1}, X: 10, Y: 10},
+			{Part: model.Part{ID: "p3", Label: "C", Width: 100, Height: 50, Quantity: 1}, X: 400, Y: 200},
+		},
+	}
+
+	code := gen.GenerateSheet(sheet, 1)
+
+	if !strings.Contains(code, "Toolpath ordering") {
+		t.Error("expected toolpath ordering comment when enabled")
+	}
+
+	// With nearest-neighbor from origin (0,0), the order should be: B (near origin), C (middle), A (far)
+	idxB := strings.Index(code, "Part 1: B")
+	idxC := strings.Index(code, "Part 2: C")
+	idxA := strings.Index(code, "Part 3: A")
+
+	if idxB < 0 || idxC < 0 || idxA < 0 {
+		t.Fatalf("expected all parts in output, got:\n%s", code)
+	}
+	if !(idxB < idxC && idxC < idxA) {
+		t.Errorf("expected nearest-neighbor order B,C,A but parts appeared in different order")
+	}
+}
+
+func TestToolpathOrdering_SinglePart(t *testing.T) {
+	settings := newTestSettings()
+	settings.OptimizeToolpath = true
+	gen := New(settings)
+	code := gen.GenerateSheet(newTestSheet(), 1)
+
+	// Single part: ordering should not add comment since len(placements) <= 1
+	if strings.Contains(code, "Toolpath ordering") {
+		t.Error("expected no toolpath ordering comment for single part")
+	}
+}
+
+func TestToolpathOrdering_ReducesDistance(t *testing.T) {
+	// Placements arranged in a zigzag pattern that would benefit from reordering
+	placements := []model.Placement{
+		{Part: model.Part{ID: "p1", Label: "A", Width: 50, Height: 50, Quantity: 1}, X: 900, Y: 0},
+		{Part: model.Part{ID: "p2", Label: "B", Width: 50, Height: 50, Quantity: 1}, X: 0, Y: 0},
+		{Part: model.Part{ID: "p3", Label: "C", Width: 50, Height: 50, Quantity: 1}, X: 450, Y: 0},
+	}
+
+	originalDist := TotalRapidDistance(placements)
+
+	settings := newTestSettings()
+	gen := New(settings)
+	ordered := gen.orderPlacements(placements)
+	orderedDist := TotalRapidDistance(ordered)
+
+	if orderedDist > originalDist {
+		t.Errorf("ordered distance (%.2f) should not exceed original distance (%.2f)", orderedDist, originalDist)
+	}
+}
+
+func TestTotalRapidDistance(t *testing.T) {
+	placements := []model.Placement{
+		{Part: model.Part{ID: "p1", Label: "A", Width: 0, Height: 0, Quantity: 1}, X: 100, Y: 0},
+		{Part: model.Part{ID: "p2", Label: "B", Width: 0, Height: 0, Quantity: 1}, X: 200, Y: 0},
+	}
+
+	dist := TotalRapidDistance(placements)
+	// From (0,0) to center of first (100,0) = 100, then to center of second (200,0) = 100
+	expected := 200.0
+	if math.Abs(dist-expected) > 0.01 {
+		t.Errorf("expected total distance %.2f, got %.2f", expected, dist)
+	}
+}
+
+func TestTotalRapidDistance_Empty(t *testing.T) {
+	dist := TotalRapidDistance(nil)
+	if dist != 0 {
+		t.Errorf("expected 0 for empty placements, got %f", dist)
+	}
+}
+
+func TestDefaultSettings_ToolpathOrderingDisabled(t *testing.T) {
+	s := model.DefaultSettings()
+	if s.OptimizeToolpath {
+		t.Error("expected default OptimizeToolpath to be false")
+	}
+}

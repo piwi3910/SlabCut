@@ -153,6 +153,9 @@ type CutSettings struct {
 
 	// GCode post-processor profile
 	GCodeProfile string `json:"gcode_profile"` // Name of the GCode profile to use
+
+	// Toolpath ordering (minimize rapid travel distance)
+	OptimizeToolpath bool `json:"optimize_toolpath"` // Enable nearest-neighbor toolpath ordering
 }
 
 // StockTabConfig defines holding tabs for the stock sheet edges.
@@ -401,7 +404,8 @@ func DefaultSettings() CutSettings {
 			RightPadding:  25.0,
 			CustomZones:   nil,
 		},
-		GCodeProfile: "Generic", // Default GCode profile
+		GCodeProfile:     "Generic", // Default GCode profile
+		OptimizeToolpath: false,     // Disabled by default
 	}
 }
 
