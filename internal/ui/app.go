@@ -353,6 +353,17 @@ func parseInt(s string) int {
 	return v
 }
 
+func parseGrain(s string) model.Grain {
+	switch s {
+	case "Horizontal":
+		return model.GrainHorizontal
+	case "Vertical":
+		return model.GrainVertical
+	default:
+		return model.GrainNone
+	}
+}
+
 // enterButton is a button that also responds to Enter/Return key when focused.
 type enterButton struct {
 	widget.Button
@@ -382,7 +393,7 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 	a.partsContainer = container.NewVBox()
 	a.refreshPartsList()
 
-	// Quick-add row: Label, Width, Height, Qty, + button
+	// Quick-add row: Label, Width, Height, Qty, Grain, + button
 	qaLabel := widget.NewEntry()
 	qaLabel.SetPlaceHolder("Name")
 	qaWidth := widget.NewEntry()
@@ -392,6 +403,8 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 	qaQty := widget.NewEntry()
 	qaQty.SetPlaceHolder("Qty")
 	qaQty.SetText("1")
+	qaGrain := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	qaGrain.SetSelected("None")
 
 	doQuickAdd := func() {
 		label := qaLabel.Text
@@ -408,12 +421,14 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 		if q <= 0 {
 			q = 1
 		}
+		grain := parseGrain(qaGrain.Selected)
 		a.saveState("Quick Add Part")
 		a.project.Parts = append(a.project.Parts, model.Part{
 			Label:    label,
 			Width:    w,
 			Height:   h,
 			Quantity: q,
+			Grain:    grain,
 		})
 		a.refreshPartsList()
 		// Reset fields for next entry
@@ -421,6 +436,7 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 		qaWidth.SetText("")
 		qaHeight.SetText("")
 		qaQty.SetText("1")
+		qaGrain.SetSelected("None")
 		a.window.Canvas().Focus(qaWidth)
 	}
 
@@ -432,7 +448,7 @@ func (a *App) buildPartsPanel() fyne.CanvasObject {
 
 	qaAddBtn := newEnterButton(theme.ContentAddIcon(), doQuickAdd)
 
-	quickAddRow := container.NewGridWithColumns(5, qaLabel, qaWidth, qaHeight, qaQty, qaAddBtn)
+	quickAddRow := container.NewGridWithColumns(6, qaLabel, qaWidth, qaHeight, qaQty, qaGrain, qaAddBtn)
 
 	// Dropdown-style add button: "Add Part..." (dialog) or "Import DXF..."
 	addMenuBtn := widget.NewButton("Add Part...", nil)
@@ -694,7 +710,7 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 	a.stockContainer = container.NewVBox()
 	a.refreshStockList()
 
-	// Quick-add row: Label, Width, Height, Qty, + button
+	// Quick-add row: Label, Width, Height, Qty, Grain, + button
 	qaLabel := widget.NewEntry()
 	qaLabel.SetPlaceHolder("Name")
 	qaLabel.SetText("Plywood")
@@ -705,6 +721,8 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 	qaQty := widget.NewEntry()
 	qaQty.SetPlaceHolder("Qty")
 	qaQty.SetText("1")
+	qaGrain := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	qaGrain.SetSelected("None")
 
 	doQuickAdd := func() {
 		label := qaLabel.Text
@@ -721,12 +739,14 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 		if q <= 0 {
 			q = 1
 		}
+		grain := parseGrain(qaGrain.Selected)
 		a.saveState("Quick Add Stock")
 		a.project.Stocks = append(a.project.Stocks, model.StockSheet{
 			Label:    label,
 			Width:    w,
 			Height:   h,
 			Quantity: q,
+			Grain:    grain,
 		})
 		a.refreshStockList()
 		// Reset for next entry
@@ -734,6 +754,7 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 		qaWidth.SetText("")
 		qaHeight.SetText("")
 		qaQty.SetText("1")
+		qaGrain.SetSelected("None")
 		a.window.Canvas().Focus(qaWidth)
 	}
 
@@ -744,7 +765,7 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 
 	qaAddBtn := newEnterButton(theme.ContentAddIcon(), doQuickAdd)
 
-	quickAddRow := container.NewGridWithColumns(5, qaLabel, qaWidth, qaHeight, qaQty, qaAddBtn)
+	quickAddRow := container.NewGridWithColumns(6, qaLabel, qaWidth, qaHeight, qaQty, qaGrain, qaAddBtn)
 
 	// Dropdown-style add button for detailed dialog and inventory
 	addMenuBtn := widget.NewButton("Add Stock...", nil)
