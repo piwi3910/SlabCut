@@ -43,6 +43,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
 - **PDF Export** — Multi-page cut diagrams with dimensions, labels, efficiency stats, and summary
 - **QR Label Export** — Generate printable QR-coded labels for cut parts with part name, dimensions, and sheet position (Avery 5160 layout)
 - **GCode Export** — Per-sheet GCode files with configurable profiles
+- **Project Sharing** — Export projects as `.slabshare` files with author, notes, and metadata for team collaboration; import shared projects with preview
 - **Project Save/Load** — JSON-based project files (`.cnccalc`)
 
 ### User Interface
@@ -131,6 +132,7 @@ SlabCut/
 │   │   ├── inventory.go        # Tool/stock inventory persistence
 │   │   ├── library.go          # Parts library persistence
 │   │   ├── templates.go        # Project template persistence
+│   │   ├── sharing.go          # Project sharing/collaboration
 │   │   └── appconfig.go        # App config persistence
 │   └── ui/
 │       ├── app.go              # Main UI (tabs, menus, dialogs)
