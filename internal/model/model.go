@@ -22,14 +22,58 @@ func (g Grain) String() string {
 	}
 }
 
+// Point2D represents a 2D coordinate in mm.
+type Point2D struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// Outline represents a closed polygon as a sequence of 2D points.
+// The outline is implicitly closed: the last point connects back to the first.
+type Outline []Point2D
+
+// BoundingBox returns the min and max corners of the outline.
+func (o Outline) BoundingBox() (min, max Point2D) {
+	if len(o) == 0 {
+		return Point2D{}, Point2D{}
+	}
+	min = Point2D{X: o[0].X, Y: o[0].Y}
+	max = Point2D{X: o[0].X, Y: o[0].Y}
+	for _, p := range o[1:] {
+		if p.X < min.X {
+			min.X = p.X
+		}
+		if p.Y < min.Y {
+			min.Y = p.Y
+		}
+		if p.X > max.X {
+			max.X = p.X
+		}
+		if p.Y > max.Y {
+			max.Y = p.Y
+		}
+	}
+	return min, max
+}
+
+// Translate shifts all points by dx, dy.
+func (o Outline) Translate(dx, dy float64) Outline {
+	result := make(Outline, len(o))
+	for i, p := range o {
+		result[i] = Point2D{X: p.X + dx, Y: p.Y + dy}
+	}
+	return result
+}
+
 // Part represents a required piece to be cut.
 type Part struct {
-	ID       string  `json:"id"`
-	Label    string  `json:"label"`
-	Width    float64 `json:"width"`  // mm
-	Height   float64 `json:"height"` // mm
-	Quantity int     `json:"quantity"`
-	Grain    Grain   `json:"grain"`
+	ID       string   `json:"id"`
+	Label    string   `json:"label"`
+	Width    float64  `json:"width"`  // mm (bounding box width for non-rectangular parts)
+	Height   float64  `json:"height"` // mm (bounding box height for non-rectangular parts)
+	Quantity int      `json:"quantity"`
+	Grain    Grain    `json:"grain"`
+	Outline  Outline  `json:"outline,omitempty"` // Non-rectangular part outline; nil for rectangular parts
 }
 
 func NewPart(label string, w, h float64, qty int) Part {

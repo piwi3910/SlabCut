@@ -62,6 +62,9 @@ func (a *App) SetupMenus() {
 		fyne.NewMenuItem("Import Parts from Excel...", func() {
 			a.importExcel()
 		}),
+		fyne.NewMenuItem("Import Parts from DXF...", func() {
+			a.importDXF()
+		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Export GCode...", func() {
 			a.exportGCode()
@@ -719,6 +722,18 @@ func (a *App) importExcel() {
 		defer reader.Close()
 
 		result := partimporter.ImportExcel(reader.URI().Path())
+		a.handleImportResult(result)
+	}, a.window)
+}
+
+func (a *App) importDXF() {
+	dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil || reader == nil {
+			return
+		}
+		defer reader.Close()
+
+		result := partimporter.ImportDXF(reader.URI().Path())
 		a.handleImportResult(result)
 	}, a.window)
 }
