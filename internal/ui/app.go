@@ -185,6 +185,9 @@ func (a *App) SetupMenus() {
 			a.runOptimize()
 			a.tabs.SelectIndex(3) // Switch to Results tab
 		}),
+		fyne.NewMenuItem("Compare Settings...", func() {
+			a.showCompareDialog()
+		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Purchasing Calculator...", func() {
 			a.showPurchasingCalculator()
