@@ -1,0 +1,22 @@
+# Binaries
+cnc-calculator
+cutoptimizer
+*.exe
+*.dll
+*.so
+*.dylib
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Serena
+.serena/
+
+# Test coverage
+coverage.out
