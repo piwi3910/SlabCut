@@ -11,10 +11,24 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/piwi3910/SlabCut/internal/model"
 )
+
+// contrastTextColor returns white or black text depending on the luminance
+// of the given background color. This ensures part labels are readable
+// regardless of the fill color.
+func contrastTextColor(bg color.Color) color.Color {
+	r, g, b, _ := bg.RGBA()
+	// Relative luminance (ITU-R BT.709)
+	lum := 0.2126*float64(r)/0xFFFF + 0.7152*float64(g)/0xFFFF + 0.0722*float64(b)/0xFFFF
+	if lum > 0.5 {
+		return color.Black
+	}
+	return color.White
+}
 
 // Part colors — cycle through these for visual distinction.
 var partColors = []color.NRGBA{
@@ -226,9 +240,11 @@ func (r *sheetCanvasRenderer) rebuild() {
 	bg.Move(fyne.NewPos(panX, panY))
 	r.objects = append(r.objects, bg)
 
-	// Stock border
+	// Stock border — use theme foreground color with alpha for theme awareness
 	border := canvas.NewRectangle(color.Transparent)
-	border.StrokeColor = color.NRGBA{R: 100, G: 100, B: 100, A: 255}
+	fgColor := theme.ForegroundColor()
+	fr, fg, fb, _ := fgColor.RGBA()
+	border.StrokeColor = color.NRGBA{R: uint8(fr >> 8), G: uint8(fg >> 8), B: uint8(fb >> 8), A: 180}
 	border.StrokeWidth = 2
 	border.Resize(fyne.NewSize(canvasW, canvasH))
 	border.Move(fyne.NewPos(panX, panY))
@@ -262,11 +278,12 @@ func (r *sheetCanvasRenderer) rebuild() {
 		partBorder.Move(fyne.NewPos(px, py))
 		r.objects = append(r.objects, partBorder)
 
-		// Label (only if big enough)
+		// Label (only if big enough) — adaptive text color based on part fill luminance
 		if pw > 30 && ph > 16 {
+			textColor := contrastTextColor(col)
 			label := canvas.NewText(
 				fmt.Sprintf("%s\n%.0fx%.0f", p.Part.Label, p.Part.Width, p.Part.Height),
-				color.Black,
+				textColor,
 			)
 			label.TextSize = 10
 			label.Move(fyne.NewPos(px+3, py+2))
