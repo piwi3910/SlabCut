@@ -532,11 +532,12 @@ func (a *App) refreshStockList() {
 		return
 	}
 
-	header := container.NewGridWithColumns(7,
+	header := container.NewGridWithColumns(8,
 		widget.NewLabelWithStyle("Label", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Width (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Height (mm)", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Qty", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabelWithStyle("Grain", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("Price/Sheet", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
 		widget.NewLabelWithStyle("", fyne.TextAlignLeading, fyne.TextStyle{}),
@@ -551,11 +552,12 @@ func (a *App) refreshStockList() {
 		if s.PricePerSheet > 0 {
 			priceLabel = fmt.Sprintf("%.2f", s.PricePerSheet)
 		}
-		row := container.NewGridWithColumns(7,
+		row := container.NewGridWithColumns(8,
 			widget.NewLabel(s.Label),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Width)),
 			widget.NewLabel(fmt.Sprintf("%.1f", s.Height)),
 			widget.NewLabel(fmt.Sprintf("%d", s.Quantity)),
+			widget.NewLabel(s.Grain.String()),
 			widget.NewLabel(priceLabel),
 			widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
 				a.showEditStockDialog(idx)
@@ -620,6 +622,9 @@ func (a *App) showAddStockDialog() {
 	})
 	presetSelect.PlaceHolder = "Select a preset size..."
 
+	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	grainSelect.SetSelected("None")
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetPlaceHolder("0.00 (optional)")
 	priceEntry.SetText("0")
@@ -631,6 +636,7 @@ func (a *App) showAddStockDialog() {
 			widget.NewFormItem("Width (mm)", widthEntry),
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
+			widget.NewFormItem("Grain Direction", grainSelect),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -646,13 +652,19 @@ func (a *App) showAddStockDialog() {
 			}
 			a.saveState("Add Stock Sheet")
 			sheet := model.NewStockSheet(labelEntry.Text, w, h, q)
+			switch grainSelect.Selected {
+			case "Horizontal":
+				sheet.Grain = model.GrainHorizontal
+			case "Vertical":
+				sheet.Grain = model.GrainVertical
+			}
 			sheet.PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.project.Stocks = append(a.project.Stocks, sheet)
 			a.refreshStockList()
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(450, 450))
+	form.Resize(fyne.NewSize(450, 500))
 	form.Show()
 }
 
@@ -671,6 +683,9 @@ func (a *App) showEditStockDialog(idx int) {
 	qtyEntry := widget.NewEntry()
 	qtyEntry.SetText(fmt.Sprintf("%d", s.Quantity))
 
+	grainSelect := widget.NewSelect([]string{"None", "Horizontal", "Vertical"}, nil)
+	grainSelect.SetSelected(s.Grain.String())
+
 	priceEntry := widget.NewEntry()
 	priceEntry.SetText(fmt.Sprintf("%.2f", s.PricePerSheet))
 
@@ -680,6 +695,7 @@ func (a *App) showEditStockDialog(idx int) {
 			widget.NewFormItem("Width (mm)", widthEntry),
 			widget.NewFormItem("Height (mm)", heightEntry),
 			widget.NewFormItem("Quantity", qtyEntry),
+			widget.NewFormItem("Grain Direction", grainSelect),
 			widget.NewFormItem("Price per Sheet", priceEntry),
 		},
 		func(ok bool) {
@@ -698,12 +714,20 @@ func (a *App) showEditStockDialog(idx int) {
 			a.project.Stocks[idx].Width = w
 			a.project.Stocks[idx].Height = h
 			a.project.Stocks[idx].Quantity = q
+			switch grainSelect.Selected {
+			case "Horizontal":
+				a.project.Stocks[idx].Grain = model.GrainHorizontal
+			case "Vertical":
+				a.project.Stocks[idx].Grain = model.GrainVertical
+			default:
+				a.project.Stocks[idx].Grain = model.GrainNone
+			}
 			a.project.Stocks[idx].PricePerSheet, _ = strconv.ParseFloat(priceEntry.Text, 64)
 			a.refreshStockList()
 		},
 		a.window,
 	)
-	form.Resize(fyne.NewSize(400, 350))
+	form.Resize(fyne.NewSize(400, 400))
 	form.Show()
 }
 

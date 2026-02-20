@@ -136,6 +136,7 @@ type StockSheet struct {
 	Width         float64        `json:"width"`  // mm
 	Height        float64        `json:"height"` // mm
 	Quantity      int            `json:"quantity"`
+	Grain         Grain          `json:"grain"`           // Sheet grain direction (None, Horizontal, Vertical)
 	Tabs          StockTabConfig `json:"tabs"`            // Override default tab config for this sheet
 	PricePerSheet float64        `json:"price_per_sheet"` // Cost per sheet in user's currency (0 = not set)
 }
@@ -147,8 +148,32 @@ func NewStockSheet(label string, w, h float64, qty int) StockSheet {
 		Width:    w,
 		Height:   h,
 		Quantity: qty,
+		Grain:    GrainNone,
 		Tabs:     StockTabConfig{Enabled: false}, // Use defaults by default
 	}
+}
+
+// CanPlaceWithGrain checks whether a part with the given grain constraint can be
+// placed on a stock sheet with the given grain, optionally rotated 90 degrees.
+// Returns (canPlaceNormal, canPlaceRotated).
+//
+// Rules:
+//   - If the part grain is None, it can always be placed in either orientation.
+//   - If the stock grain is None, any part grain is acceptable; rotation is blocked
+//     only because the part has grain (rotating would flip the grain direction).
+//   - If both part and stock have a grain, the part grain must match the stock grain.
+//     Rotation would flip the grain so it is not allowed when both have grain.
+func CanPlaceWithGrain(partGrain, stockGrain Grain) (canNormal, canRotated bool) {
+	if partGrain == GrainNone {
+		return true, true
+	}
+	if stockGrain == GrainNone {
+		return true, false
+	}
+	if partGrain == stockGrain {
+		return true, false
+	}
+	return false, false
 }
 
 // Algorithm represents the optimizer algorithm to use.
