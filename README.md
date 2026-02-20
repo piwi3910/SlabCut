@@ -1,3 +1,5 @@
+<p align="center"><img src="logos/slabcut-logo.svg" alt="SlabCut" width="400"></p>
+
 # SlabCut
 
 A cross-platform desktop application for optimizing rectangular cut lists and generating CNC-ready GCode. Built with Go and [Fyne](https://fyne.io/) — produces a single native binary for Windows, macOS, and Linux with no runtime dependencies.

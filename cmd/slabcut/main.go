@@ -18,20 +18,31 @@
 package main
 
 import (
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
+	"github.com/piwi3910/SlabCut/internal/assets"
 	"github.com/piwi3910/SlabCut/internal/ui"
 )
 
 func main() {
 	application := app.NewWithID("com.piwi3910.slabcut")
+	application.SetIcon(fyne.NewStaticResource("icon.png", assets.IconPNG))
+
 	window := application.NewWindow("SlabCut — CNC Cut List Optimizer")
+	window.SetIcon(fyne.NewStaticResource("icon.png", assets.IconPNG))
 
 	appUI := ui.NewApp(window)
-	appUI.SetupMenus() // Setup the native menu bar
+	appUI.SetupMenus()
 	window.SetContent(appUI.Build())
 	window.Resize(fyne.NewSize(1000, 700))
 	window.CenterOnScreen()
-	window.ShowAndRun()
+
+	ui.ShowSplash(application, 2500*time.Millisecond, func() {
+		window.Show()
+	})
+
+	application.Run()
 }

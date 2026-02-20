@@ -21,7 +21,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev
 
       - name: Build
-        run: go build ./cmd/slabcut
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          go build -ldflags="-X github.com/piwi3910/SlabCut/internal/version.Version=${VERSION} -X github.com/piwi3910/SlabCut/internal/version.Commit=${COMMIT}" ./cmd/slabcut
 
   test:
     runs-on: ubuntu-latest

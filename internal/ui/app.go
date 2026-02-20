@@ -19,6 +19,7 @@ import (
 	"github.com/piwi3910/SlabCut/internal/model"
 	"github.com/piwi3910/SlabCut/internal/project"
 	"github.com/piwi3910/SlabCut/internal/ui/widgets"
+	"github.com/piwi3910/SlabCut/internal/version"
 )
 
 // App holds all application state and UI references.
@@ -220,7 +221,7 @@ func (a *App) showAboutDialog() {
 		"SlabCut — CNC Cut List Optimizer\n\n"+
 			"A cross-platform desktop application for optimizing\n"+
 			"rectangular cut lists and generating CNC-ready GCode.\n\n"+
-			"Version 1.0.0",
+			version.Short(),
 		a.window,
 	)
 }
@@ -238,7 +239,13 @@ func (a *App) Build() fyne.CanvasObject {
 
 	a.registerShortcuts()
 
-	return a.tabs
+	statusBar := widget.NewLabelWithStyle(
+		"SlabCut "+version.Short(),
+		fyne.TextAlignTrailing,
+		fyne.TextStyle{Italic: true},
+	)
+
+	return container.NewBorder(nil, statusBar, nil, nil, a.tabs)
 }
 
 // saveState captures the current project state before a modification.
