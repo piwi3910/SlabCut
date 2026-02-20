@@ -34,7 +34,7 @@ func main() {
 	window := application.NewWindow("SlabCut — CNC Cut List Optimizer")
 	window.SetIcon(fyne.NewStaticResource("icon.png", assets.IconPNG))
 
-	appUI := ui.NewApp(window)
+	appUI := ui.NewApp(application, window)
 	appUI.SetupMenus()
 	window.SetContent(appUI.Build())
 	window.Resize(fyne.NewSize(1000, 700))

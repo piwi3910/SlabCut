@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	partimporter "github.com/piwi3910/SlabCut/internal/importer"
 	"github.com/piwi3910/SlabCut/internal/model"
 	"github.com/piwi3910/SlabCut/internal/project"
 )
@@ -111,9 +112,17 @@ func (a *App) showLibraryManager() {
 		})
 	})
 
+	importDXFBtn := widget.NewButtonWithIcon("Import DXF", theme.FolderOpenIcon(), func() {
+		a.importDXFToLibrary(w, func() {
+			refreshList()
+			categoryFilter.Options = a.libraryCategoryOptions()
+		})
+	})
+
 	toolbar := container.NewHBox(
 		addBtn,
 		importCSVBtn,
+		importDXFBtn,
 		layout.NewSpacer(),
 	)
 
@@ -561,6 +570,48 @@ func (a *App) importCSVToLibrary(parent fyne.Window, onDone func()) {
 			}
 			dialog.ShowInformation("Import Complete", msg, parent)
 		}
+	}, parent)
+}
+
+// importDXFToLibrary imports parts from a DXF file into the library.
+func (a *App) importDXFToLibrary(parent fyne.Window, onDone func()) {
+	dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil || reader == nil {
+			return
+		}
+		defer reader.Close()
+
+		result := partimporter.ImportDXF(reader.URI().Path())
+
+		if len(result.Errors) > 0 && len(result.Parts) == 0 {
+			errorMsg := "DXF import failed:\n\n" + strings.Join(result.Errors, "\n")
+			dialog.ShowError(fmt.Errorf("%s", errorMsg), parent)
+			return
+		}
+
+		added := 0
+		for _, p := range result.Parts {
+			lp := model.NewLibraryPart(p.Label, p.Width, p.Height, p.Grain)
+			lp.Category = "DXF Import"
+			a.library.AddPart(lp)
+			added++
+		}
+
+		if added > 0 {
+			a.saveLibrary()
+			if onDone != nil {
+				onDone()
+			}
+		}
+
+		msg := fmt.Sprintf("Successfully imported %d parts to library.", added)
+		if len(result.Warnings) > 0 {
+			msg += "\n\nWarnings:\n" + strings.Join(result.Warnings, "\n")
+		}
+		if len(result.Errors) > 0 {
+			msg += fmt.Sprintf("\n%d errors occurred.", len(result.Errors))
+		}
+		dialog.ShowInformation("DXF Import Complete", msg, parent)
 	}, parent)
 }
 

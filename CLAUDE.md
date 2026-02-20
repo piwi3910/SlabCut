@@ -45,7 +45,9 @@ github.com/piwi3910/SlabCut/
 │   ├── export/             # PDF export
 │   ├── ui/                 # Main Fyne UI, dialogs, admin, profile editor
 │   │   └── widgets/        # Custom Fyne widgets (SheetCanvas, GCodePreview)
-│   └── project/            # Project/profile/inventory/library/config persistence
+│   ├── project/            # Project/profile/inventory/library/config persistence
+│   ├── version/            # Build-time version/commit info (ldflags)
+│   └── assets/             # Embedded images (icon, splash) via go:embed
 ├── .github/workflows/      # CI pipeline
 ├── go.mod
 └── Makefile
