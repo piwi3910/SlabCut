@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f1f24"/>
+      <stop offset="100%" stop-color="#16161a"/>
+    </linearGradient>
+    <filter id="cutGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="90" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle border -->
+  <rect x="2" y="2" width="508" height="508" rx="88" fill="none" stroke="#333" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Cut sheet icon centered -->
+  <g transform="translate(256, 210)" filter="url(#shadow)">
+    <!-- Main slab -->
+    <rect x="-130" y="-100" width="260" height="200" rx="6" 
+          fill="#2d2520" stroke="#c8956c" stroke-width="3"/>
+
+    <!-- Nested pieces -->
+    <rect x="-120" y="-90" width="115" height="85" rx="3" fill="#D4845A" opacity="0.9"/>
+    <rect x="5" y="-90" width="115" height="40" rx="3" fill="#C27245" opacity="0.9"/>
+    <rect x="5" y="-40" width="55" height="40" rx="3" fill="#B8623A" opacity="0.9"/>
+    <rect x="70" y="-40" width="50" height="40" rx="3" fill="#A85530" opacity="0.9"/>
+    <rect x="-120" y="5" width="150" height="85" rx="3" fill="#E09060" opacity="0.9"/>
+    <rect x="40" y="5" width="80" height="40" rx="3" fill="#CB7D50" opacity="0.9"/>
+    <rect x="40" y="55" width="80" height="35" rx="3" fill="#D4845A" opacity="0.9"/>
+
+    <!-- Cut lines -->
+    <g filter="url(#cutGlow)" opacity="0.9">
+      <line x1="-120" y1="0" x2="120" y2="0" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="5" y1="-44" x2="120" y2="-44" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="40" y1="50" x2="120" y2="50" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="0" y1="-90" x2="0" y2="5" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="65" y1="-44" x2="65" y2="5" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="35" y1="0" x2="35" y2="90" stroke="#FF6B35" stroke-width="2" stroke-dasharray="5,3"/>
+    </g>
+  </g>
+
+  <!-- Wordmark below icon -->
+  <g transform="translate(276, 0)">
+    <text x="-6" y="385" 
+          font-family="'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif" 
+          font-size="62" font-weight="800" letter-spacing="4"
+          text-anchor="end" fill="#F0E6DC">SLAB</text>
+    <text x="14" y="385" 
+          font-family="'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif" 
+          font-size="62" font-weight="800" letter-spacing="4"
+          text-anchor="start" fill="#FF6B35">CUT</text>
+  </g>
+
+  <!-- Accent line -->
+  <line x1="130" y1="400" x2="382" y2="400" stroke="#FF6B35" stroke-width="2" opacity="0.5"/>
+
+  <!-- Tagline -->  
+  <text x="256" y="432" 
+        font-family="'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif" 
+        font-size="15" font-weight="400" letter-spacing="3.5"
+        text-anchor="middle" fill="#777">CNC CUT OPTIMIZER</text>
+</svg>
