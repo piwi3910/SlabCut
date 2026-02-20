@@ -13,27 +13,67 @@ CutOptimizer is a cross-platform desktop CNC cut list optimizer built with Go an
 
 ## Code Location
 
-**IMPORTANT**: The codebase is currently flat in the repository root but should be organized under the standard Go structure:
-
 ```
 github.com/pascal/cutoptimizer/
-├── cmd/cutoptimizer/    # Entry point (main.go currently at root)
+├── cmd/cnc-calculator/  # Entry point (main.go)
 ├── internal/
-│   ├── model/          # Currently: model.go
-│   ├── engine/         # Currently: optimizer.go
-│   ├── gcode/          # Currently: generator.go
-│   ├── ui/             # Currently: app.go, sheet_canvas.go
-│   └── project/        # TODO: save/load functionality
-└── go.mod
+│   ├── model/           # Core types (Part, StockSheet, Placement, etc.)
+│   ├── engine/          # Guillotine bin packing optimizer
+│   ├── gcode/           # GCode generator with toolpath + tabs
+│   ├── importer/        # CSV/file import support
+│   ├── ui/              # Main Fyne application UI
+│   │   └── widgets/     # Custom Fyne widgets (SheetCanvas)
+│   └── project/         # Project save/load functionality
+├── go.mod
+└── Makefile
 ```
 
-**Current flat structure** (legacy, during refactor):
-- `main.go` - Entry point → should be `cmd/cutoptimizer/main.go`
-- `model.go` - Core types → should be `internal/model/model.go`
-- `optimizer.go` - Bin packing → should be `internal/engine/optimizer.go`
-- `generator.go` - GCode output → should be `internal/gcode/generator.go`
-- `app.go` - Main UI → should be `internal/ui/app.go`
-- `sheet_canvas.go` - Custom widget → should be `internal/ui/widgets/sheet_canvas.go`
+## Git Workflow (MANDATORY)
+
+### Always Use Git Worktrees
+
+**NEVER use `git checkout -b` or `git switch -c` in the main worktree.** The main worktree MUST always stay on `main`. All feature development, bug fixes, and PRs use isolated git worktrees.
+
+### Worktree Directory
+
+All worktrees live in `../cnc-calculator-worktrees/` (sibling to this repo).
+
+### Commands
+
+```bash
+# Create a worktree for a new feature/fix (from main worktree)
+git fetch origin
+git worktree add ../cnc-calculator-worktrees/issue-NUM-description -b issue-NUM-description origin/main
+
+# Work inside the worktree
+cd ../cnc-calculator-worktrees/issue-NUM-description
+
+# Push and create PR from the worktree
+git push -u origin issue-NUM-description
+gh pr create --title "..." --body "..."
+
+# Cleanup after merge (from main worktree)
+git worktree remove ../cnc-calculator-worktrees/issue-NUM-description
+git branch -d issue-NUM-description
+```
+
+### Branch Naming
+
+```
+issue-NUM-brief-description
+```
+
+Examples: `issue-42-fix-login-auth`, `issue-15-add-export-feature`
+
+### Rules
+
+- **One branch per issue** — each in its own worktree
+- **Main worktree stays on `main`** — ALWAYS, no exceptions
+- **Worktree directory name matches the branch name**
+- **Never have two agents working in the same worktree**
+- **Clean up worktrees and delete branches after merging**
+- **All PRs are created from worktree branches, never from main**
+- **Always `git fetch origin` before creating a worktree** to ensure you branch from latest main
 
 ## Architecture
 
@@ -134,10 +174,8 @@ go test ./internal/engine
 
 ## Known Issues / TODO
 
-1. **File Organization**: Code is flat in root, needs restructuring to `internal/` layout
-2. **Stock Selection**: `selectBestStock()` is a TODO (line 119-121 in optimizer.go)
-3. **Project Save/Load**: Referenced in app.go but `project` package not yet created
-4. **Test Coverage**: No test files exist yet
+1. **Stock Selection**: `selectBestStock()` is a TODO in optimizer.go
+2. **Test Coverage**: No test files exist yet
 
 ## Feature Roadmap
 
