@@ -739,6 +739,9 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 		widget.NewLabel("Guillotine Cuts Only"), widget.NewCheck("", func(b bool) { s.GuillotineOnly = b }),
 	))
 
+	optimizeToolpathCheck := widget.NewCheck("", func(b bool) { s.OptimizeToolpath = b })
+	optimizeToolpathCheck.Checked = s.OptimizeToolpath
+
 	cncSection := widget.NewCard("CNC / GCode", "", container.NewGridWithColumns(2,
 		widget.NewLabel("Load Tool Profile"), a.buildToolProfileSelector(),
 		widget.NewLabel("GCode Profile"), a.buildProfileSelector(),
@@ -749,6 +752,7 @@ func (a *App) buildSettingsPanel() fyne.CanvasObject {
 		widget.NewLabel("Safe Z Height (mm)"), floatEntry(&s.SafeZ),
 		widget.NewLabel("Material Thickness (mm)"), floatEntry(&s.CutDepth),
 		widget.NewLabel("Pass Depth (mm)"), floatEntry(&s.PassDepth),
+		widget.NewLabel("Optimize Toolpath Order"), optimizeToolpathCheck,
 	))
 
 	leadInOutSection := widget.NewCard("Lead-In / Lead-Out Arcs", "Arc approach and exit for smoother cuts", container.NewGridWithColumns(2,
