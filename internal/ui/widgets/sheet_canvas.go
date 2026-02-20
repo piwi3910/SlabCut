@@ -52,7 +52,7 @@ type SheetCanvas struct {
 	dragging bool
 	dragX    float32 // last drag position
 	dragY    float32
-	dirty    bool    // set when sheet data changes, forces renderer rebuild
+	dirty    bool // set when sheet data changes, forces renderer rebuild
 }
 
 // NewSheetCanvas creates a new zoomable, pannable sheet canvas widget.
