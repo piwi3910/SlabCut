@@ -341,26 +341,129 @@ func (a *App) registerShortcuts() {
 	})
 }
 
+// ─── Helpers ────────────────────────────────────────────────
+
+func parseFloat(s string) float64 {
+	v, _ := strconv.ParseFloat(s, 64)
+	return v
+}
+
+func parseInt(s string) int {
+	v, _ := strconv.Atoi(s)
+	return v
+}
+
+// enterButton is a button that also responds to Enter/Return key when focused.
+type enterButton struct {
+	widget.Button
+}
+
+func newEnterButton(icon fyne.Resource, tapped func()) *enterButton {
+	b := &enterButton{}
+	b.SetIcon(icon)
+	b.OnTapped = tapped
+	b.ExtendBaseWidget(b)
+	return b
+}
+
+func (b *enterButton) TypedKey(ev *fyne.KeyEvent) {
+	if ev.Name == fyne.KeyReturn || ev.Name == fyne.KeyEnter {
+		if b.OnTapped != nil {
+			b.OnTapped()
+		}
+		return
+	}
+	b.Button.TypedKey(ev)
+}
+
 // ─── Parts Panel ───────────────────────────────────────────
 
 func (a *App) buildPartsPanel() fyne.CanvasObject {
 	a.partsContainer = container.NewVBox()
 	a.refreshPartsList()
 
-	addBtn := widget.NewButtonWithIcon("Add Part", theme.ContentAddIcon(), func() {
-		a.showAddPartDialog()
-	})
+	// Quick-add row: Label, Width, Height, Qty, + button
+	qaLabel := widget.NewEntry()
+	qaLabel.SetPlaceHolder("Name")
+	qaWidth := widget.NewEntry()
+	qaWidth.SetPlaceHolder("Width")
+	qaHeight := widget.NewEntry()
+	qaHeight.SetPlaceHolder("Height")
+	qaQty := widget.NewEntry()
+	qaQty.SetPlaceHolder("Qty")
+	qaQty.SetText("1")
+
+	doQuickAdd := func() {
+		label := qaLabel.Text
+		if label == "" {
+			label = fmt.Sprintf("Part %d", len(a.project.Parts)+1)
+		}
+		w := parseFloat(qaWidth.Text)
+		h := parseFloat(qaHeight.Text)
+		if w <= 0 || h <= 0 {
+			dialog.ShowError(fmt.Errorf("width and height must be positive numbers"), a.window)
+			return
+		}
+		q := parseInt(qaQty.Text)
+		if q <= 0 {
+			q = 1
+		}
+		a.saveState("Quick Add Part")
+		a.project.Parts = append(a.project.Parts, model.Part{
+			Label:    label,
+			Width:    w,
+			Height:   h,
+			Quantity: q,
+		})
+		a.refreshPartsList()
+		// Reset fields for next entry
+		qaLabel.SetText(fmt.Sprintf("Part %d", len(a.project.Parts)+1))
+		qaWidth.SetText("")
+		qaHeight.SetText("")
+		qaQty.SetText("1")
+		a.window.Canvas().Focus(qaWidth)
+	}
+
+	// Enter key on any field triggers add
+	qaLabel.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaWidth.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaHeight.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaQty.OnSubmitted = func(_ string) { doQuickAdd() }
+
+	qaAddBtn := newEnterButton(theme.ContentAddIcon(), doQuickAdd)
+
+	quickAddRow := container.NewGridWithColumns(5, qaLabel, qaWidth, qaHeight, qaQty, qaAddBtn)
+
+	// Dropdown-style add button: "Add Part..." (dialog) or "Import DXF..."
+	addMenuBtn := widget.NewButton("Add Part...", nil)
+	addMenu := fyne.NewMenu("",
+		fyne.NewMenuItem("Add Part (detailed)...", func() {
+			a.showAddPartDialog()
+		}),
+		fyne.NewMenuItem("Import from DXF...", func() {
+			a.importDXF()
+		}),
+	)
+	addMenuBtn.OnTapped = func() {
+		pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(addMenuBtn)
+		pos.Y += addMenuBtn.Size().Height
+		widget.ShowPopUpMenuAtPosition(addMenu, a.window.Canvas(), pos)
+	}
 
 	addFromLibBtn := widget.NewButtonWithIcon("Add from Library", theme.FolderOpenIcon(), func() {
 		a.showAddFromLibraryDialog()
 	})
 
 	return container.NewBorder(
-		container.NewHBox(
-			widget.NewLabelWithStyle("Required Parts", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-			layout.NewSpacer(),
-			addFromLibBtn,
-			addBtn,
+		container.NewVBox(
+			container.NewHBox(
+				widget.NewLabelWithStyle("Required Parts", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+				layout.NewSpacer(),
+				addFromLibBtn,
+				addMenuBtn,
+			),
+			quickAddRow,
+			widget.NewSeparator(),
 		),
 		nil, nil, nil,
 		container.NewVScroll(a.partsContainer),
@@ -591,20 +694,83 @@ func (a *App) buildStockPanel() fyne.CanvasObject {
 	a.stockContainer = container.NewVBox()
 	a.refreshStockList()
 
-	addBtn := widget.NewButtonWithIcon("Add Stock Sheet", theme.ContentAddIcon(), func() {
-		a.showAddStockDialog()
-	})
+	// Quick-add row: Label, Width, Height, Qty, + button
+	qaLabel := widget.NewEntry()
+	qaLabel.SetPlaceHolder("Name")
+	qaLabel.SetText("Plywood")
+	qaWidth := widget.NewEntry()
+	qaWidth.SetPlaceHolder("Width")
+	qaHeight := widget.NewEntry()
+	qaHeight.SetPlaceHolder("Height")
+	qaQty := widget.NewEntry()
+	qaQty.SetPlaceHolder("Qty")
+	qaQty.SetText("1")
 
-	fromInventoryBtn := widget.NewButtonWithIcon("Add from Inventory", theme.FolderOpenIcon(), func() {
-		a.showAddStockFromInventory()
-	})
+	doQuickAdd := func() {
+		label := qaLabel.Text
+		if label == "" {
+			label = fmt.Sprintf("Sheet %d", len(a.project.Stocks)+1)
+		}
+		w := parseFloat(qaWidth.Text)
+		h := parseFloat(qaHeight.Text)
+		if w <= 0 || h <= 0 {
+			dialog.ShowError(fmt.Errorf("width and height must be positive numbers"), a.window)
+			return
+		}
+		q := parseInt(qaQty.Text)
+		if q <= 0 {
+			q = 1
+		}
+		a.saveState("Quick Add Stock")
+		a.project.Stocks = append(a.project.Stocks, model.StockSheet{
+			Label:    label,
+			Width:    w,
+			Height:   h,
+			Quantity: q,
+		})
+		a.refreshStockList()
+		// Reset for next entry
+		qaLabel.SetText("Plywood")
+		qaWidth.SetText("")
+		qaHeight.SetText("")
+		qaQty.SetText("1")
+		a.window.Canvas().Focus(qaWidth)
+	}
+
+	qaLabel.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaWidth.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaHeight.OnSubmitted = func(_ string) { doQuickAdd() }
+	qaQty.OnSubmitted = func(_ string) { doQuickAdd() }
+
+	qaAddBtn := newEnterButton(theme.ContentAddIcon(), doQuickAdd)
+
+	quickAddRow := container.NewGridWithColumns(5, qaLabel, qaWidth, qaHeight, qaQty, qaAddBtn)
+
+	// Dropdown-style add button for detailed dialog and inventory
+	addMenuBtn := widget.NewButton("Add Stock...", nil)
+	addMenu := fyne.NewMenu("",
+		fyne.NewMenuItem("Add Stock (detailed)...", func() {
+			a.showAddStockDialog()
+		}),
+		fyne.NewMenuItem("Add from Inventory...", func() {
+			a.showAddStockFromInventory()
+		}),
+	)
+	addMenuBtn.OnTapped = func() {
+		pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(addMenuBtn)
+		pos.Y += addMenuBtn.Size().Height
+		widget.ShowPopUpMenuAtPosition(addMenu, a.window.Canvas(), pos)
+	}
 
 	return container.NewBorder(
-		container.NewHBox(
-			widget.NewLabelWithStyle("Available Stock Sheets", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-			layout.NewSpacer(),
-			fromInventoryBtn,
-			addBtn,
+		container.NewVBox(
+			container.NewHBox(
+				widget.NewLabelWithStyle("Available Stock Sheets", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+				layout.NewSpacer(),
+				addMenuBtn,
+			),
+			quickAddRow,
+			widget.NewSeparator(),
 		),
 		nil, nil, nil,
 		container.NewVScroll(a.stockContainer),
