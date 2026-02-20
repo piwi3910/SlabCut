@@ -50,7 +50,7 @@ type StockSheet struct {
 	Width    float64        `json:"width"`  // mm
 	Height   float64        `json:"height"` // mm
 	Quantity int            `json:"quantity"`
-	Tabs     StockTabConfig `json:"tabs"`    // Override default tab config for this sheet
+	Tabs     StockTabConfig `json:"tabs"` // Override default tab config for this sheet
 }
 
 func NewStockSheet(label string, w, h float64, qty int) StockSheet {
@@ -67,24 +67,24 @@ func NewStockSheet(label string, w, h float64, qty int) StockSheet {
 // CutSettings holds optimizer and CNC configuration.
 type CutSettings struct {
 	// Optimizer settings
-	KerfWidth     float64 `json:"kerf_width"`     // Blade/bit width in mm
-	EdgeTrim      float64 `json:"edge_trim"`      // Trim around sheet edges in mm
-	GuillotineOnly bool   `json:"guillotine_only"` // Restrict to guillotine cuts
+	KerfWidth      float64 `json:"kerf_width"`      // Blade/bit width in mm
+	EdgeTrim       float64 `json:"edge_trim"`       // Trim around sheet edges in mm
+	GuillotineOnly bool    `json:"guillotine_only"` // Restrict to guillotine cuts
 
 	// CNC / GCode settings
-	ToolDiameter  float64 `json:"tool_diameter"`  // End mill diameter in mm
-	FeedRate      float64 `json:"feed_rate"`      // Cutting feed rate mm/min
-	PlungeRate    float64 `json:"plunge_rate"`    // Plunge feed rate mm/min
-	SpindleSpeed  int     `json:"spindle_speed"`  // RPM
-	SafeZ         float64 `json:"safe_z"`         // Safe retract height mm
-	CutDepth      float64 `json:"cut_depth"`      // Total material thickness mm
-	PassDepth     float64 `json:"pass_depth"`     // Depth per pass mm
+	ToolDiameter float64 `json:"tool_diameter"` // End mill diameter in mm
+	FeedRate     float64 `json:"feed_rate"`     // Cutting feed rate mm/min
+	PlungeRate   float64 `json:"plunge_rate"`   // Plunge feed rate mm/min
+	SpindleSpeed int     `json:"spindle_speed"` // RPM
+	SafeZ        float64 `json:"safe_z"`        // Safe retract height mm
+	CutDepth     float64 `json:"cut_depth"`     // Total material thickness mm
+	PassDepth    float64 `json:"pass_depth"`    // Depth per pass mm
 
 	// Part holding tabs (for keeping parts connected during cut)
-	PartTabWidth    float64 `json:"part_tab_width"`    // Part tab width mm
-	PartTabHeight   float64 `json:"part_tab_height"`   // Part tab height mm
+	PartTabWidth    float64 `json:"part_tab_width"`     // Part tab width mm
+	PartTabHeight   float64 `json:"part_tab_height"`    // Part tab height mm
 	PartTabsPerSide int     `json:"part_tabs_per_side"` // Number of tabs per part side
-	UseClimb        bool    `json:"use_climb"`         // Climb vs conventional milling
+	UseClimb        bool    `json:"use_climb"`          // Climb vs conventional milling
 
 	// Stock sheet holding tabs (for securing sheet to CNC bed)
 	StockTabs StockTabConfig `json:"stock_tabs"` // Stock sheet tab configuration
@@ -96,8 +96,8 @@ type CutSettings struct {
 // StockTabConfig defines holding tabs for the stock sheet edges.
 // These keep the sheet secured to the CNC bed while cutting.
 type StockTabConfig struct {
-	Enabled     bool     `json:"enabled"`      // Whether stock tabs are enabled
-	AdvancedMode bool    `json:"advanced_mode"` // true = custom positions, false = edge padding
+	Enabled      bool `json:"enabled"`       // Whether stock tabs are enabled
+	AdvancedMode bool `json:"advanced_mode"` // true = custom positions, false = edge padding
 
 	// Simple mode: uniform padding on edges
 	TopPadding    float64 `json:"top_padding"`    // mm from top edge to keep as tab
@@ -120,108 +120,108 @@ type TabZone struct {
 
 // GCodeProfile defines a post-processor configuration for different CNC controllers.
 type GCodeProfile struct {
-	Name        string   `json:"name"`        // Profile name
-	Description string   `json:"description"` // Profile description
-	Units       string   `json:"units"`       // "mm" or "inches"
+	Name        string `json:"name"`        // Profile name
+	Description string `json:"description"` // Profile description
+	Units       string `json:"units"`       // "mm" or "inches"
 
 	// Startup codes
-	StartCode       []string `json:"start_code"`       // Commands at start of file
-	SpindleStart    string   `json:"spindle_start"`    // Spindle on command (e.g., "M3 S%d")
-	SpindleStop     string   `json:"spindle_stop"`     // Spindle off command
-	HomeAll         string   `json:"home_all"`         // Home all axes command
-	HomeXY          string   `json:"home_xy"`          // Home XY only command
+	StartCode    []string `json:"start_code"`    // Commands at start of file
+	SpindleStart string   `json:"spindle_start"` // Spindle on command (e.g., "M3 S%d")
+	SpindleStop  string   `json:"spindle_stop"`  // Spindle off command
+	HomeAll      string   `json:"home_all"`      // Home all axes command
+	HomeXY       string   `json:"home_xy"`       // Home XY only command
 
 	// Motion settings
-	AbsoluteMode    string   `json:"absolute_mode"`    // G90 or equivalent
-	FeedMode        string   `json:"feed_mode"`        // Feed rate mode
-	RapidMove       string   `json:"rapid_move"`       // G0 or equivalent
-	FeedMove        string   `json:"feed_move"`        // G1 or equivalent
+	AbsoluteMode string `json:"absolute_mode"` // G90 or equivalent
+	FeedMode     string `json:"feed_mode"`     // Feed rate mode
+	RapidMove    string `json:"rapid_move"`    // G0 or equivalent
+	FeedMove     string `json:"feed_move"`     // G1 or equivalent
 
 	// End codes
-	EndCode         []string `json:"end_code"`         // Commands at end of file
+	EndCode []string `json:"end_code"` // Commands at end of file
 
 	// Comment style
-	CommentPrefix   string   `json:"comment_prefix"`   // Comment start (e.g., ";")
-	CommentSuffix   string   `json:"comment_suffix"`   // Comment end (if needed, e.g., ")" for Fanuc)
+	CommentPrefix string `json:"comment_prefix"` // Comment start (e.g., ";")
+	CommentSuffix string `json:"comment_suffix"` // Comment end (if needed, e.g., ")" for Fanuc)
 
 	// Number formatting
-	DecimalPlaces  int      `json:"decimal_places"`  // Number of decimal places for coordinates
-	LeadingZeros    bool     `json:"leading_zeros"`    // Whether to pad with leading zeros
+	DecimalPlaces int  `json:"decimal_places"` // Number of decimal places for coordinates
+	LeadingZeros  bool `json:"leading_zeros"`  // Whether to pad with leading zeros
 }
 
 // Built-in GCode profiles
 var GCodeProfiles = []GCodeProfile{
 	{
-		Name:        "Grbl",
-		Description: "Standard Grbl configuration (Arduino CNC shields)",
-		Units:       "mm",
-		StartCode:   []string{"G90", "G21", "G17"},
-		SpindleStart: "M3 S%d",
-		SpindleStop:  "M5",
-		HomeAll:      "$H",
-		HomeXY:       "$H",
-		AbsoluteMode: "G90",
-		FeedMode:     "G94",
-		RapidMove:    "G0",
-		FeedMove:     "G1",
-		EndCode:      []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
+		Name:          "Grbl",
+		Description:   "Standard Grbl configuration (Arduino CNC shields)",
+		Units:         "mm",
+		StartCode:     []string{"G90", "G21", "G17"},
+		SpindleStart:  "M3 S%d",
+		SpindleStop:   "M5",
+		HomeAll:       "$H",
+		HomeXY:        "$H",
+		AbsoluteMode:  "G90",
+		FeedMode:      "G94",
+		RapidMove:     "G0",
+		FeedMove:      "G1",
+		EndCode:       []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
 		CommentPrefix: ";",
 		CommentSuffix: "",
 		DecimalPlaces: 3,
 		LeadingZeros:  false,
 	},
 	{
-		Name:        "Mach3",
-		Description: "Mach3 CNC control software",
-		Units:       "mm",
-		StartCode:   []string{"G90", "G21", "G17", "G94"},
-		SpindleStart: "M3 S%d",
-		SpindleStop:  "M5",
-		HomeAll:      "G28 X0 Y0 Z0",
-		HomeXY:       "G28 X0 Y0",
-		AbsoluteMode: "G90",
-		FeedMode:     "G94",
-		RapidMove:    "G0",
-		FeedMove:     "G1",
-		EndCode:      []string{"G0 Z[SafeZ]", "G28 X0 Y0", "M5", "M30"},
+		Name:          "Mach3",
+		Description:   "Mach3 CNC control software",
+		Units:         "mm",
+		StartCode:     []string{"G90", "G21", "G17", "G94"},
+		SpindleStart:  "M3 S%d",
+		SpindleStop:   "M5",
+		HomeAll:       "G28 X0 Y0 Z0",
+		HomeXY:        "G28 X0 Y0",
+		AbsoluteMode:  "G90",
+		FeedMode:      "G94",
+		RapidMove:     "G0",
+		FeedMove:      "G1",
+		EndCode:       []string{"G0 Z[SafeZ]", "G28 X0 Y0", "M5", "M30"},
 		CommentPrefix: ";",
 		CommentSuffix: "",
 		DecimalPlaces: 4,
 		LeadingZeros:  false,
 	},
 	{
-		Name:        "LinuxCNC",
-		Description: "LinuxCNC (formerly EMC2)",
-		Units:       "mm",
-		StartCode:   []string{"G90", "G21", "G17", "G94"},
-		SpindleStart: "M3 S%d",
-		SpindleStop:  "M5",
-		HomeAll:      "G28 X0 Y0 Z0",
-		HomeXY:       "G28 X0 Y0",
-		AbsoluteMode: "G90",
-		FeedMode:     "G94",
-		RapidMove:    "G0",
-		FeedMove:     "G1",
-		EndCode:      []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
+		Name:          "LinuxCNC",
+		Description:   "LinuxCNC (formerly EMC2)",
+		Units:         "mm",
+		StartCode:     []string{"G90", "G21", "G17", "G94"},
+		SpindleStart:  "M3 S%d",
+		SpindleStop:   "M5",
+		HomeAll:       "G28 X0 Y0 Z0",
+		HomeXY:        "G28 X0 Y0",
+		AbsoluteMode:  "G90",
+		FeedMode:      "G94",
+		RapidMove:     "G0",
+		FeedMove:      "G1",
+		EndCode:       []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
 		CommentPrefix: ";",
 		CommentSuffix: "",
 		DecimalPlaces: 4,
 		LeadingZeros:  false,
 	},
 	{
-		Name:        "Generic",
-		Description: "Generic standard GCode",
-		Units:       "mm",
-		StartCode:   []string{"G90", "G21"},
-		SpindleStart: "M3 S%d",
-		SpindleStop:  "M5",
-		HomeAll:      "G28 X0 Y0 Z0",
-		HomeXY:       "G28 X0 Y0",
-		AbsoluteMode: "G90",
-		FeedMode:     "G94",
-		RapidMove:    "G0",
-		FeedMove:     "G1",
-		EndCode:      []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
+		Name:          "Generic",
+		Description:   "Generic standard GCode",
+		Units:         "mm",
+		StartCode:     []string{"G90", "G21"},
+		SpindleStart:  "M3 S%d",
+		SpindleStop:   "M5",
+		HomeAll:       "G28 X0 Y0 Z0",
+		HomeXY:        "G28 X0 Y0",
+		AbsoluteMode:  "G90",
+		FeedMode:      "G94",
+		RapidMove:     "G0",
+		FeedMove:      "G1",
+		EndCode:       []string{"G0 Z[SafeZ]", "G0 X0 Y0", "M5", "M2"},
 		CommentPrefix: ";",
 		CommentSuffix: "",
 		DecimalPlaces: 3,
@@ -265,15 +265,15 @@ func DefaultSettings() CutSettings {
 		PartTabsPerSide: 0, // Disabled by default
 		UseClimb:        true,
 		StockTabs: StockTabConfig{
-			Enabled:      true, // Enabled by default
-			AdvancedMode: false,
+			Enabled:       true, // Enabled by default
+			AdvancedMode:  false,
 			TopPadding:    25.0,
 			BottomPadding: 25.0,
 			LeftPadding:   25.0,
 			RightPadding:  25.0,
 			CustomZones:   nil,
 		},
-		GCodeProfile:    "Generic", // Default GCode profile
+		GCodeProfile: "Generic", // Default GCode profile
 	}
 }
 
@@ -332,8 +332,8 @@ func (sr SheetResult) Efficiency() float64 {
 
 // OptimizeResult holds the full solution.
 type OptimizeResult struct {
-	Sheets       []SheetResult `json:"sheets"`
-	UnplacedParts []Part       `json:"unplaced_parts"`
+	Sheets        []SheetResult `json:"sheets"`
+	UnplacedParts []Part        `json:"unplaced_parts"`
 }
 
 // TotalEfficiency returns overall material usage percentage.
@@ -351,10 +351,10 @@ func (or OptimizeResult) TotalEfficiency() float64 {
 
 // Project ties everything together for save/load.
 type Project struct {
-	Name     string       `json:"name"`
-	Parts    []Part       `json:"parts"`
-	Stocks   []StockSheet `json:"stocks"`
-	Settings CutSettings  `json:"settings"`
+	Name     string          `json:"name"`
+	Parts    []Part          `json:"parts"`
+	Stocks   []StockSheet    `json:"stocks"`
+	Settings CutSettings     `json:"settings"`
 	Result   *OptimizeResult `json:"result,omitempty"`
 }
 

@@ -38,7 +38,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
 - **Parts Library** — Save and reuse predefined parts organized by category
 - **Tool & Stock Inventory** — Manage cutting tools and stock sheet presets
 - **Admin Menu** — Application settings, inventory management, data backup/restore
-- **Stock Size Presets** — Common panel sizes (2440x1220, 1220x610, etc.)
+- **Stock Size Presets** — Quick-select dropdown with common panel sizes (Full, Half, Quarter sheet, Euro sizes)
 
 ## Prerequisites
 
