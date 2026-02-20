@@ -43,7 +43,16 @@ jobs:
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev gcc-mingw-w64-x86-64
+        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev gcc-mingw-w64-x86-64 imagemagick
+
+      - name: Embed Windows icon resource
+        if: matrix.goos == 'windows'
+        run: |
+          # Convert PNG to ICO (multiple sizes for best display)
+          convert logos/slabcut-icon.png -define icon:auto-resize=256,128,64,48,32,16 logos/slabcut-icon.ico
+
+          # Compile the Windows resource file into a .syso that Go will auto-link
+          x86_64-w64-mingw32-windres cmd/slabcut/slabcut.rc -O coff -o cmd/slabcut/slabcut_windows_amd64.syso
 
       - name: Build
         env:

@@ -1,0 +1,27 @@
+IDI_ICON1 ICON "..\\..\\logos\\slabcut-icon.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,0,3,0
+PRODUCTVERSION 0,0,3,0
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "piwi3910"
+            VALUE "FileDescription", "SlabCut — CNC Cut List Optimizer"
+            VALUE "FileVersion", "0.0.3"
+            VALUE "InternalName", "slabcut"
+            VALUE "LegalCopyright", "Copyright (c) 2026 Pascal Watteel"
+            VALUE "OriginalFilename", "slabcut.exe"
+            VALUE "ProductName", "SlabCut"
+            VALUE "ProductVersion", "0.0.3"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END

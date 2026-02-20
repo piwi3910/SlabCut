@@ -19,5 +19,9 @@
 # Serena
 .serena/
 
+# Windows resource objects (generated during build)
+*.syso
+*.ico
+
 # Test coverage
 coverage.out
