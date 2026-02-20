@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -58,6 +59,14 @@ type App struct {
 	gcodePreviewBox   *fyne.Container
 	selectedSheetIdx  int
 	settingsContainer *fyne.Container
+
+	// Right panel accordion and items for dynamic title updates
+	rightAccordion *widget.Accordion
+	partsItem      *widget.AccordionItem
+	stockItem      *widget.AccordionItem
+
+	// Loading spinner shown during optimization
+	progressBar *widget.ProgressBarInfinite
 
 	// Dust shoe collision results from last optimization
 	lastCollisions []model.DustShoeCollision
@@ -153,21 +162,30 @@ func (a *App) refreshProfileSelector() {
 // SetupMenus creates the native menu bar for the application.
 func (a *App) SetupMenus() {
 	// File Menu
+	newProjectItem := fyne.NewMenuItem("New Project", func() {
+		a.saveState("New Project")
+		a.project = model.NewProject()
+		a.config.ApplyToSettings(&a.project.Settings)
+		a.refreshPartsList()
+		a.refreshStockList()
+		a.refreshResults()
+	})
+	newProjectItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierSuper}
+
+	openProjectItem := fyne.NewMenuItem("Open Project...", func() {
+		a.loadProject()
+	})
+	openProjectItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyO, Modifier: fyne.KeyModifierSuper}
+
+	saveProjectItem := fyne.NewMenuItem("Save Project...", func() {
+		a.saveProject()
+	})
+	saveProjectItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyS, Modifier: fyne.KeyModifierSuper}
+
 	fileMenu := fyne.NewMenu("File",
-		fyne.NewMenuItem("New Project", func() {
-			a.saveState("New Project")
-			a.project = model.NewProject()
-			a.config.ApplyToSettings(&a.project.Settings)
-			a.refreshPartsList()
-			a.refreshStockList()
-			a.refreshResults()
-		}),
-		fyne.NewMenuItem("Open Project...", func() {
-			a.loadProject()
-		}),
-		fyne.NewMenuItem("Save Project...", func() {
-			a.saveProject()
-		}),
+		newProjectItem,
+		openProjectItem,
+		saveProjectItem,
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Import Parts from CSV...", func() {
 			a.importCSV()
@@ -199,13 +217,19 @@ func (a *App) SetupMenus() {
 	)
 
 	// Edit Menu
+	undoItem := fyne.NewMenuItem("Undo", func() {
+		a.undo()
+	})
+	undoItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyZ, Modifier: fyne.KeyModifierSuper}
+
+	redoItem := fyne.NewMenuItem("Redo", func() {
+		a.redo()
+	})
+	redoItem.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyZ, Modifier: fyne.KeyModifierSuper | fyne.KeyModifierShift}
+
 	editMenu := fyne.NewMenu("Edit",
-		fyne.NewMenuItem("Undo", func() {
-			a.undo()
-		}),
-		fyne.NewMenuItem("Redo", func() {
-			a.redo()
-		}),
+		undoItem,
+		redoItem,
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Clear All Parts", func() {
 			a.saveState("Clear All Parts")
@@ -317,20 +341,30 @@ func (a *App) Build() fyne.CanvasObject {
 		fyne.TextStyle{Italic: true},
 	)
 
-	exportGCodeBtn := widget.NewButtonWithIcon("Export GCode", theme.DocumentSaveIcon(), func() {
+	exportGCodeBtn := newIconButtonWithTooltip(theme.DocumentSaveIcon(), "Export GCode files for CNC", func() {
 		a.exportGCode()
 	})
-	exportPDFBtn := widget.NewButtonWithIcon("Export PDF", theme.DocumentSaveIcon(), func() {
+	exportGCodeBtn.SetText("Export GCode")
+	exportPDFBtn := newIconButtonWithTooltip(theme.DocumentSaveIcon(), "Export PDF cut layout", func() {
 		a.exportPDF()
 	})
+	exportPDFBtn.SetText("Export PDF")
 
-	statusBar := container.NewHBox(
-		versionLabel,
-		layout.NewSpacer(),
-		a.statusLabel,
-		layout.NewSpacer(),
-		exportGCodeBtn,
-		exportPDFBtn,
+	// Loading spinner (hidden by default)
+	a.progressBar = widget.NewProgressBarInfinite()
+	a.progressBar.Hide()
+
+	statusBar := container.NewVBox(
+		widget.NewSeparator(),
+		container.NewHBox(
+			versionLabel,
+			layout.NewSpacer(),
+			a.progressBar,
+			a.statusLabel,
+			layout.NewSpacer(),
+			exportGCodeBtn,
+			exportPDFBtn,
+		),
 	)
 
 	return container.NewBorder(nil, statusBar, nil, nil, a.tabs)
@@ -427,10 +461,14 @@ func (a *App) buildQuickSettingsPanel() fyne.CanvasObject {
 			if preset == nil {
 				return
 			}
-			// Apply stock preset values to kerf/thickness context
-			// (stock sheets are added in the right panel)
+			// Quick-apply: add the selected stock preset to the project
+			sheet := preset.ToStockSheet(1)
+			a.saveState("Quick Apply Stock Preset")
+			a.project.Stocks = append(a.project.Stocks, sheet)
+			a.refreshStockList()
+			a.scheduleOptimize()
 		})
-		stockPresetSelect.PlaceHolder = "Load Stock Preset..."
+		stockPresetSelect.PlaceHolder = "Quick Add from Inventory..."
 	}
 
 	kerfEntry := floatEntry(&s.KerfWidth)
@@ -566,7 +604,7 @@ func (a *App) buildCenterCanvas() fyne.CanvasObject {
 	canvasArea := container.NewStack(a.sheetCanvas)
 
 	bottomBar := container.NewVBox(
-		container.NewHBox(a.sheetSelectorBox),
+		container.NewHScroll(a.sheetSelectorBox),
 		zoomBar,
 	)
 
@@ -672,8 +710,15 @@ func (a *App) buildPartsStockPanel() fyne.CanvasObject {
 
 	partAddBtn := newEnterButton(theme.ContentAddIcon(), doPartAdd)
 
+	partFieldLabels := container.NewGridWithColumns(4,
+		widget.NewLabelWithStyle("Width", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Height", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Qty", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Grain", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+	)
 	partQuickAdd := container.NewVBox(
 		container.NewBorder(nil, nil, nil, partAddBtn, qaName),
+		partFieldLabels,
 		container.NewGridWithColumns(4, qaWidth, qaHeight, qaQty, qaGrain),
 	)
 
@@ -770,8 +815,15 @@ func (a *App) buildPartsStockPanel() fyne.CanvasObject {
 
 	stockAddBtn := newEnterButton(theme.ContentAddIcon(), doStockAdd)
 
+	stockFieldLabels := container.NewGridWithColumns(4,
+		widget.NewLabelWithStyle("Width", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Height", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Thick", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewLabelWithStyle("Qty", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+	)
 	stockQuickAdd := container.NewVBox(
 		container.NewBorder(nil, nil, nil, stockAddBtn, sqaName),
+		stockFieldLabels,
 		container.NewGridWithColumns(4, sqaWidth, sqaHeight, sqaThick, sqaQty),
 	)
 
@@ -804,15 +856,15 @@ func (a *App) buildPartsStockPanel() fyne.CanvasObject {
 		container.NewVScroll(a.stockContainer),
 	)
 
-	// Build accordion
-	partsItem := widget.NewAccordionItem("Parts", partsContent)
-	stockItem := widget.NewAccordionItem("Stock Sheets", stockContent)
-	rightAccordion := widget.NewAccordion(partsItem, stockItem)
-	rightAccordion.MultiOpen = true
-	rightAccordion.Open(0)
-	rightAccordion.Open(1)
+	// Build accordion — store references for dynamic title updates
+	a.partsItem = widget.NewAccordionItem(fmt.Sprintf("Parts (%d)", len(a.project.Parts)), partsContent)
+	a.stockItem = widget.NewAccordionItem(fmt.Sprintf("Stock Sheets (%d)", len(a.project.Stocks)), stockContent)
+	a.rightAccordion = widget.NewAccordion(a.partsItem, a.stockItem)
+	a.rightAccordion.MultiOpen = true
+	a.rightAccordion.Open(0)
+	a.rightAccordion.Open(1)
 
-	return container.NewVScroll(rightAccordion)
+	return container.NewVScroll(a.rightAccordion)
 }
 
 // refreshPartsList rebuilds the parts card list in the right panel.
@@ -822,8 +874,21 @@ func (a *App) refreshPartsList() {
 	}
 	a.partsContainer.RemoveAll()
 
+	// Update accordion title with count
+	if a.partsItem != nil {
+		a.partsItem.Title = fmt.Sprintf("Parts (%d)", len(a.project.Parts))
+		if a.rightAccordion != nil {
+			a.rightAccordion.Refresh()
+		}
+	}
+
 	if len(a.project.Parts) == 0 {
-		a.partsContainer.Add(widget.NewLabel("No parts added yet."))
+		emptyState := container.NewCenter(container.NewVBox(
+			widget.NewIcon(theme.ContentAddIcon()),
+			widget.NewLabel("No parts added yet"),
+			widget.NewLabel("Use the quick-add bar above or click 'More...'"),
+		))
+		a.partsContainer.Add(emptyState)
 		return
 	}
 
@@ -847,10 +912,18 @@ func (a *App) refreshPartsList() {
 			a.showEditPartDialog(idx)
 		})
 		deleteBtn := newIconButtonWithTooltip(theme.DeleteIcon(), "Delete Part", func() {
-			a.saveState("Delete Part")
-			a.project.Parts = append(a.project.Parts[:idx], a.project.Parts[idx+1:]...)
-			a.refreshPartsList()
-			a.scheduleOptimize()
+			partName := a.project.Parts[idx].Label
+			dialog.ShowConfirm("Delete Part?",
+				fmt.Sprintf("Are you sure you want to delete %q?", partName),
+				func(ok bool) {
+					if !ok {
+						return
+					}
+					a.saveState("Delete Part")
+					a.project.Parts = append(a.project.Parts[:idx], a.project.Parts[idx+1:]...)
+					a.refreshPartsList()
+					a.scheduleOptimize()
+				}, a.window)
 		})
 		saveBtn := newIconButtonWithTooltip(theme.DownloadIcon(), "Save to Library", func() {
 			a.showSaveToLibraryDialog(a.project.Parts[idx])
@@ -871,8 +944,21 @@ func (a *App) refreshStockList() {
 	}
 	a.stockContainer.RemoveAll()
 
+	// Update accordion title with count
+	if a.stockItem != nil {
+		a.stockItem.Title = fmt.Sprintf("Stock Sheets (%d)", len(a.project.Stocks))
+		if a.rightAccordion != nil {
+			a.rightAccordion.Refresh()
+		}
+	}
+
 	if len(a.project.Stocks) == 0 {
-		a.stockContainer.Add(widget.NewLabel("No stock sheets defined."))
+		emptyState := container.NewCenter(container.NewVBox(
+			widget.NewIcon(theme.ContentAddIcon()),
+			widget.NewLabel("No stock sheets defined"),
+			widget.NewLabel("Use the quick-add bar above or click 'More...'"),
+		))
+		a.stockContainer.Add(emptyState)
 		return
 	}
 
@@ -899,10 +985,18 @@ func (a *App) refreshStockList() {
 			a.showEditStockDialog(idx)
 		})
 		deleteBtn := newIconButtonWithTooltip(theme.DeleteIcon(), "Delete Stock Sheet", func() {
-			a.saveState("Delete Stock Sheet")
-			a.project.Stocks = append(a.project.Stocks[:idx], a.project.Stocks[idx+1:]...)
-			a.refreshStockList()
-			a.scheduleOptimize()
+			sheetName := a.project.Stocks[idx].Label
+			dialog.ShowConfirm("Delete Stock Sheet?",
+				fmt.Sprintf("Are you sure you want to delete %q?", sheetName),
+				func(ok bool) {
+					if !ok {
+						return
+					}
+					a.saveState("Delete Stock Sheet")
+					a.project.Stocks = append(a.project.Stocks[:idx], a.project.Stocks[idx+1:]...)
+					a.refreshStockList()
+					a.scheduleOptimize()
+				}, a.window)
 		})
 
 		buttons := container.NewHBox(editBtn, deleteBtn)
