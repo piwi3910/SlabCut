@@ -23,6 +23,7 @@ A cross-platform desktop application for optimizing rectangular cut lists and ge
   - Safe Z retract between operations
   - Lead-in/lead-out arcs for smoother entry and exit
   - Toolpath ordering optimization (nearest-neighbor) to minimize rapid travel
+  - Ramped and helical plunge entry strategies for reduced tool stress
 - **GCode Preview** — Visual toolpath simulation with color-coded rapid/feed/plunge moves
 - **Post-Processor Profiles** — Built-in profiles for Grbl, Mach3, LinuxCNC + custom user profiles
 - **DXF Part Outlines** — GCode follows actual part contours for non-rectangular shapes
