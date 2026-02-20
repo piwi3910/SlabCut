@@ -171,6 +171,13 @@ func (a *App) SetupMenus() {
 			a.previewGCode()
 		}),
 		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("Share Project...", func() {
+			a.shareProject()
+		}),
+		fyne.NewMenuItem("Import Shared Project...", func() {
+			a.importSharedProject()
+		}),
+		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Quit", func() {
 			a.window.Close()
 		}),
@@ -1628,6 +1635,97 @@ func (a *App) exportLabels() {
 	}, a.window)
 	d.SetFileName("part-labels.pdf")
 	d.Show()
+}
+
+// ─── Sharing Functions ──────────────────────────────────────
+
+func (a *App) shareProject() {
+	authorEntry := widget.NewEntry()
+	authorEntry.SetPlaceHolder("Your name")
+	if a.project.Metadata.Author != "" {
+		authorEntry.SetText(a.project.Metadata.Author)
+	}
+
+	notesEntry := widget.NewMultiLineEntry()
+	notesEntry.SetPlaceHolder("Optional notes for the recipient")
+	notesEntry.SetMinRowsVisible(3)
+	if a.project.Metadata.Notes != "" {
+		notesEntry.SetText(a.project.Metadata.Notes)
+	}
+
+	form := dialog.NewForm("Share Project", "Export", "Cancel",
+		[]*widget.FormItem{
+			widget.NewFormItem("Author", authorEntry),
+			widget.NewFormItem("Notes", notesEntry),
+		},
+		func(ok bool) {
+			if !ok {
+				return
+			}
+			d := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+				if err != nil || writer == nil {
+					return
+				}
+				writer.Close()
+				path := writer.URI().Path()
+				if exportErr := project.ExportShared(path, a.project, authorEntry.Text, notesEntry.Text); exportErr != nil {
+					dialog.ShowError(exportErr, a.window)
+				} else {
+					dialog.ShowInformation("Shared",
+						fmt.Sprintf("Project shared to:\n%s", path), a.window)
+				}
+			}, a.window)
+			d.SetFileName(a.project.Name + ".slabshare")
+			d.Show()
+		},
+		a.window,
+	)
+	form.Resize(fyne.NewSize(450, 300))
+	form.Show()
+}
+
+func (a *App) importSharedProject() {
+	dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil || reader == nil {
+			return
+		}
+		defer reader.Close()
+
+		proj, importErr := project.ImportShared(reader.URI().Path())
+		if importErr != nil {
+			dialog.ShowError(importErr, a.window)
+			return
+		}
+
+		// Show info about the imported project before applying
+		info := fmt.Sprintf("Project: %s\nParts: %d\nStock Sheets: %d",
+			proj.Name, len(proj.Parts), len(proj.Stocks))
+		if proj.Metadata.Author != "" {
+			info += fmt.Sprintf("\nShared by: %s", proj.Metadata.Author)
+		}
+		if proj.Metadata.Notes != "" {
+			info += fmt.Sprintf("\nNotes: %s", proj.Metadata.Notes)
+		}
+
+		dialog.ShowConfirm("Import Shared Project",
+			fmt.Sprintf("Import this shared project?\n\n%s", info),
+			func(ok bool) {
+				if !ok {
+					return
+				}
+				a.saveState("Import Shared Project")
+				a.project = proj
+				a.refreshPartsList()
+				a.refreshStockList()
+				if a.project.Result != nil {
+					a.refreshResults()
+				}
+				dialog.ShowInformation("Imported",
+					fmt.Sprintf("Successfully imported project %q.", proj.Name), a.window)
+			},
+			a.window,
+		)
+	}, a.window)
 }
 
 // ─── Import Functions ───────────────────────────────────────

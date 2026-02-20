@@ -760,8 +760,22 @@ func (or OptimizeResult) HasPricing() bool {
 }
 
 // Project ties everything together for save/load.
+// ProjectMetadata holds sharing and collaboration metadata for a project.
+type ProjectMetadata struct {
+	Author      string `json:"author,omitempty"`
+	Email       string `json:"email,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+	Notes       string `json:"notes,omitempty"`
+	Version     string `json:"version,omitempty"`
+	SharedFrom  string `json:"shared_from,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// Project ties everything together for save/load.
 type Project struct {
 	Name     string          `json:"name"`
+	Metadata ProjectMetadata `json:"metadata,omitempty"`
 	Parts    []Part          `json:"parts"`
 	Stocks   []StockSheet    `json:"stocks"`
 	Settings CutSettings     `json:"settings"`
